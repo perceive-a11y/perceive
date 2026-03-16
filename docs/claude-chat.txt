@@ -1,0 +1,170 @@
+
+Recognized need for candid assessment over additional research
+You're right to push back, and I owe you a more honest answer.
+
+The disconnect is that I gave you market research reports when you need a side gig. I described a multi-phase product strategy with WASM compilation, ONNX inference layers, and AccessKit integration across three platforms — for a guy who has maybe 5-10 hours a week after the kids are in bed. That's not a side gig, that's a startup pitch deck.
+
+Let me reframe around your actual constraints.
+
+What the reports got right: Accessibility has real demand, regulatory tailwinds, and your existing expertise matters. The game accessibility tooling gap is real.
+
+What the reports got wrong: They treated you like a funded founder with infinite time. Building a Rust accessibility engine with multi-platform bindings, local AI inference, and game engine plugins is a years-long effort. Competing with Deque ($100M+ company) or Level Access ($100M+ ARR) on web accessibility tooling is not realistic solo.
+
+Where the real disconnect is: The most viable side-gig paths from all this research are actually the boring ones that got buried under the exciting product ideas. Things like — a focused Unity or Unreal plugin that does one thing well (colorblind simulation, subtitle system, or accessibility checker) and sells on the asset store for $40-80. Or a few accessibility audit clients you pick up through your existing federal network. Those aren't glamorous, but they match the actual shape of your life right now.
+
+The honest question is whether any of this is worth pursuing given your bandwidth, or whether the real answer is that side gig income at $2-5K/month requires either more time than you have or a different kind of leverage entirely — like consulting through your existing professional network rather than building products from scratch.
+
+What does your realistic weekly availability actually look like? And is there appetite for consulting (trading hours for dollars, but faster to revenue) vs. products (slower, speculative, but potentially passive)?
+
+I’d like to find a product, or set of products, that I can realistically produce (I’m quite confident I can make SOME product). Something that’s desirable in a market, driven by market research that shows there is a need or existing things needing improvements. I’d probably commit up to 20 hours a week, but it would be nights or some weekend hours. 
+
+I don’t mind unglamorous boring work. Maybe I need to pivot back to the pastoral wellness app idea. I’m thinking some ecosystem plugins where there is a real desire for AI or technical solutions that are “boring and ignored” would be perfect.
+
+Mar 14
+
+Synthesized constraints to identify underserved plugin ecosystems with market demand
+Synthesized constraints to identify underserved plugin ecosystems with market demand
+That's a much clearer brief, and the "boring and ignored" instinct is exactly right — that's where solo devs actually make money. The flashy stuff gets crowded; the dull stuff that solves a real pain gets bought quietly and repeatedly.
+
+Let me research this with different eyes — not "what's the biggest market" but "what plugin ecosystems have buyers, gaps, and problems a skilled solo dev can solve in 20 night-and-weekend hours per week." I'll look across the full range: Unity/Unreal asset stores, WordPress/web CMS plugins, VS Code/dev tool extensions, Obsidian/PKM tools, church/ministry software ecosystems, and anywhere else the data shows real demand meeting poor supply. I'll also revisit the pastoral app space since that aligns with both your skills and your values.
+
+
+Solo developer product opportunities
+
+
+
+Research complete
+•
+608 sources
+•
+8m 40s
+Your boring software goldmine research report is ready. It identifies three highest-confidence product opportunities—a VPAT Copilot, self-hosted PDF 508 remediation tool, and pastoral wellness app—along with analysis of federal compliance pricing gaps, church software market gaps, game accessibility tooling, plugin marketplace economics, and verified solo-developer revenue benchmarks. The report concludes with a recommended 90-day action plan prioritized by your unique skill stack in federal accessibility, local AI deployment, and Rust/Python development.
+
+Boring Software Goldmines: Nights-and-Weekends Product Opportunities for a Federal Accessibility and AI Developer
+Document 
+That’s what I’m talking about! Give me a quick bullet summary of the latest findings
+
+12:42 AM
+
+Recognized request to synthesize existing conversation content
+Recognized request to synthesize existing conversation content
+Here's the short version:
+
+Top 3 products (highest confidence, buildable in 4-8 weeks at 20hr/week):
+
+VPAT Copilot — AI-assisted accessibility conformance report generator. Point at a URL, it scans with axe-core, maps findings to the VPAT template, LLM fills in remarks, outputs Word + OpenACR YAML. Zero middle-market competition (it's either free templates or $5K+ consulting). Price $199-399/mo. 15 subscribers = $4.5K/mo. Your federal network is the customer base.
+Self-hosted PDF 508 remediation — Every AI remediation tool is cloud-only. Federal agencies with sensitive docs can't use them. Rust PDF parser + local ML models for layout detection and alt text. Price $0.50-2/page or $199-999/mo. "Data never leaves your network" commands a premium. Start by using it yourself and billing clients, then productize.
+Pastoral wellness app — Literally zero competitors for pastor self-care (existing tools all help pastors care for their congregation). 40% of pastors show high burnout risk, 18% have contemplated self-harm. Daily check-ins, sabbath tracking, burnout scoring, AI journaling. $5-15/mo individual, $29-79/mo for networks. Simple data model, 4-6 week MVP.
+Strong secondary plays:
+
+Unity game accessibility toolkit — No commercial plugin exists. EAA and Xbox guidelines creating demand. $49-199, asset store handles distribution.
+AI sermon-to-content pipeline — Whisper + LLM turns sermon audio into devotionals, discussion guides, social posts. Standalone alternative to Subsplash's locked-in $199/mo tool. Price $19-49/mo.
+SSP Lite for small federal contractors — NIST 800-53 compliance docs cost $250K+ manually. Self-service generator at $99-299/mo/system.
+Sleeper hit:
+
+Self-hosted therapy notes tool — 198K+ therapists in private practice, 87% not using AI, every existing tool is cloud-only. Tauri desktop app with local Whisper + local LLM. $39-79/mo. Therapists can lose their license over data breaches — privacy is the product.
+The pattern across all of these: legally mandated demand + privacy requirements that block cloud solutions + technical depth most devs can't match = your moat.
+
+VPAT example … I searched and at the top was this place: https://www.webxs.ai
+
+Is this the “expensive consulting” mentioned? I don’t see how I would compare against a place like this.
+
+1:22 AM
+
+Examined competitor offering and pricing differentiation strategy
+Examined competitor offering and pricing differentiation strategy
+Good call — let me go look at what they're actually offering and figure out where they sit in the landscape. I want to understand their pricing, what they automate vs. what's manual, and whether a VPAT Copilot product would be competing head-on or serving a different segment entirely.
+
+
+VPAT generation market analysis
+
+
+
+Research complete
+•
+411 sources
+•
+8m 53s
+Your VPAT competitive landscape report is ready. It covers a deep-dive on webxs.ai (finding it's an overlay widget company, not a real competitor), analysis of five actual competitors including Stark, Accessibility Tracker, and AllAccessible, a pricing gap analysis revealing an underserved $200–$2,000/month sweet spot, four unsolved differentiation opportunities around manual testing workflows and lifecycle management, and regulatory tailwinds from the European Accessibility Act and ADA Title II updates. The report concludes with a specific four-pillar strategy for building a winning VPAT Copilot.
+
+The VPAT Generation Market Is Wide Open and WebXS.ai Is Not the Threat It Appears to Be
+Document 
+I’m intrigued enough to at least plan this out. I built Raft, didn’t announce it much, ShowHN post blocked, etc., no idea if people even want it … but this seems like something people absolutely need.
+
+1:44 AM
+
+Recognized shift from research to planning; synthesized existing insights into actionable strategy
+Recognized shift from research to planning; synthesized existing insights into actionable strategy
+That's the key difference. With Raft you built something good and hoped people wanted it. With VPAT Copilot, people are already paying $5K-$15K per report for the manual version of what you'd automate. The demand isn't hypothetical — it's line items on federal procurement budgets.
+
+Here's what a realistic plan looks like given your constraints:
+
+Weeks 1-2 (20hrs total): Validate before building. Talk to 5 people who've had to produce VPATs. You work in federal consulting — you know these people. Ask what's painful. Is it the audit? The template? Keeping it current? Version control? Don't pitch a product, just listen. This is the step Raft skipped, and it's the most important one.
+
+Weeks 3-6 (80hrs): MVP that solves the #1 pain. Based on what you hear, build the smallest thing that's useful. Probably: axe-core scan → mapped to VPAT 2.5 template → AI-generated remarks for automatable criteria → guided checklist for the manual criteria → Word + OpenACR YAML output. TypeScript + Python, nothing exotic.
+
+Weeks 7-8: First paying customers. Not a launch — just "hey, I built the thing we talked about, want to try it?" to the same 5 people. Price it. Even $99 for a single report validates more than any amount of research.
+
+The thing that makes this different from Raft: you can validate before writing a line of code just by having conversations in your existing network. You don't need ShowHN. You don't need Reddit. You need 5 people who've stared at a blank VPAT template and cursed.
+
+Want to start sketching out the technical architecture, or would it be more useful to draft the validation questions you'd ask those 5 people first?
+
+I’ll pick up VPAT and these others individually in other sessions. Do me one more: I want to make THE BEST plugins/extensions in a paying marketplace; both to build some credibility (probably good even if in an unrelated to VPAT field), and to provide some modest funding (maybe up to $1k/month). Stuff I can quickly swoop in, deliver, and get some real passive income. Based on all we’ve discussed, give me some winners!
+
+1:49 AM
+
+Synthesized user's skills and constraints to identify high-potential marketplace plugin opportunities
+Synthesized user's skills and constraints to identify high-potential marketplace plugin opportunities
+This is clear enough to dive straight in. I know your stack, your constraints, and the marketplaces worth targeting. Let me research specific plugin gaps — the ones with bad reviews, abandoned competitors, or missing features — where you can ship something meaningfully better in 1-3 weeks and let the marketplace handle distribution.
+
+
+Plugin and extension marketplace opportunities
+
+
+
+Research complete
+•
+770 sources
+•
+9m 12s
+Your plugin opportunity research report is ready. It covers seven ranked plugin ideas across Shopify, Unity, Figma, Unreal/FAB, and JetBrains marketplaces, all centered on the accessibility compliance gap created by new regulations like the EAA and CVAA. The report includes competitive landscape analysis, evidence of demand, MVP scoping with timelines, pricing models, realistic revenue projections, and a phased execution strategy targeting $1K/month. The top recommendations are a Shopify AI Accessibility Auditor, a Figma Accessible Color Palette Generator, and a Unity Accessibility Toolkit.
+
+The Best Plugin Ideas for a Solo Developer Targeting $1K/Month: Accessibility Compliance Tools Across Five Marketplaces
+Document 
+If we still have some context left … take all the research results and conversation so far, these last quick things, VPAT, etc., and show me a breakdown of support layer I can reuse. How can I combine work to reduce my effort and boost one or more of these ideas? A ground up approach where I can have strong roots, a robust trunk, and branches off into different areas to be able to serve the “middle market” or any market.
+
+2:35 AM
+
+Synthesized shared architecture layers across all product concepts
+Synthesized shared architecture layers across all product concepts
+This is the right question — it's the one that turns a list of 7 separate side projects into a platform. I don't need more research for this; I have everything from our conversation. Let me synthesize the architecture.
+
+
+Synthesized research findings into reusable architectural framework
+Synthesized research findings into reusable architectural framework
+Here's the core idea in plain language:
+
+You write 6 Rust crates once. They become 8 products across 5 marketplaces.
+
+The architecture has four layers — toggle through the Architecture, Reuse Matrix, and Build Order tabs in the artifact above. But here's what matters:
+
+The roots that do the heavy lifting:
+
+a11y-color (contrast ratios, APCA, OKLCH transforms) gets reused in five products — Figma, Unity, Unreal, Shopify, and VPAT Copilot. You write the color math once in Rust, compile it to WASM for the browser products, C# for Unity, C++ for Unreal, and Python for the backend tools. Same code, five revenue streams.
+
+a11y-rules (the WCAG 2.2 criteria catalog with machine-readable checks) drives VPAT generation, Shopify scanning, game engine checking, and IDE analysis. This is your most valuable crate — it encodes the expertise that's actually rare.
+
+local-infer (ONNX Runtime wrapper for local AI) powers alt text generation in PDFs, fix suggestions in Shopify, VPAT conformance remarks, and even the pastoral app's journaling AI. Your local-model conviction becomes a technical moat.
+
+The multiplier effect:
+
+Building the Shopify auditor first means ~70% of the VPAT Copilot's backend is already done — they share 4 of 6 crates. The Figma palette generator shares color science with both game engine toolkits. Each new branch is cheaper than the last because the roots are proven.
+
+The build sequence matters:
+
+Start with the Rust crates (open source them — credibility), ship the Figma plugin first (fastest, smallest, proves the WASM pipeline), then Shopify (fastest to meaningful revenue), then Unity/Unreal (marketplace distribution), then VPAT Copilot (by which point every component has been battle-tested in production). The flagship product gets built last but benefits from everything before it.
+
+By week 14, you have a coherent brand — "the developer who makes THE BEST accessibility tools on every platform" — built on shared infrastructure that makes each new product take days instead of weeks.
+
+Platform tree
+Code · JSX 

@@ -1,0 +1,29 @@
+[package]
+name = "perceive-color"
+description = "WCAG contrast, APCA, OKLCH, and accessible palette generation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["accessibility", "wcag", "contrast", "color", "a11y"]
+categories = ["accessibility", "graphics"]
+
+[features]
+default = ["std"]
+std = []
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1"
+
+[lints]
+workspace = true
+
+[[bench]]
+name = "contrast"
+harness = false

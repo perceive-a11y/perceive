@@ -1,0 +1,25 @@
+[package]
+name = "perceive-cvd"
+description = "Colorblind simulation using Brettel and Viénot models"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+keywords = ["accessibility", "colorblind", "cvd", "simulation", "a11y"]
+categories = ["accessibility", "graphics"]
+
+[features]
+default = ["std"]
+std = ["perceive-color/std"]
+serde = ["dep:serde", "perceive-color/serde"]
+
+[dependencies]
+perceive-color.workspace = true
+serde = { version = "1", features = ["derive"], optional = true }
+
+[dev-dependencies]
+proptest = "1"
+
+[lints]
+workspace = true
