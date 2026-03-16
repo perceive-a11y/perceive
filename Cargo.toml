@@ -1,0 +1,44 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/perceive-color",
+    "crates/perceive-cvd",
+    "bindings/wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/perceive-a11y/perceive"
+rust-version = "1.85"
+
+[workspace.dependencies]
+perceive-color = { path = "crates/perceive-color", version = "0.1.0" }
+perceive-cvd = { path = "crates/perceive-cvd", version = "0.1.0" }
+
+[workspace.lints.clippy]
+correctness = { level = "deny", priority = -1 }
+suspicious = { level = "deny", priority = -1 }
+perf = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+# Color science constants are copied verbatim from specs/papers;
+# separators make them harder to verify against references.
+unreadable_literal = "allow"
+# These fire on every public fn and add noise without value at this stage.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+many_single_char_names = "allow"
+similar_names = "allow"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
