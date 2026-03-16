@@ -5,6 +5,8 @@ Cargo.lock
 
 # WASM
 /bindings/wasm/pkg/
+/bindings/wasm/pkg-web/
+/bindings/wasm/pkg-node/
 
 # IDE
 .idea/

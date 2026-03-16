@@ -1,7 +1,7 @@
 /// A color stored as linear RGB (f64 components in [0, 1]).
 ///
 /// All internal arithmetic operates in linear space.
-/// Convert to/from sRGB at the boundaries using [`from_srgb`] / [`to_srgb`].
+/// Convert to/from sRGB at the boundaries using [`Color::from_srgb`] / [`Color::to_srgb`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Color {

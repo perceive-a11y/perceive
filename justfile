@@ -3,11 +3,11 @@ default: test
 
 # Run all tests
 test:
-    cargo test --workspace
+    cargo test --workspace --all-features
 
-# Run clippy lints
+# Run clippy lints (pedantic, deny warnings)
 lint:
-    cargo clippy --workspace --all-targets -- -D warnings
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 # Check formatting
 fmt:
@@ -17,17 +17,38 @@ fmt:
 fmt-fix:
     cargo fmt --all
 
-# Build WASM bindings
+# Build WASM bindings (web + nodejs)
 wasm-build:
-    wasm-pack build bindings/wasm --target web
+    wasm-pack build bindings/wasm --target web --out-dir pkg-web
+    wasm-pack build bindings/wasm --target nodejs --out-dir pkg-node
+
+# Run WASM Node.js integration tests
+wasm-test:
+    wasm-pack build bindings/wasm --target nodejs --out-dir pkg-node
+    node tests/wasm_node_test.mjs
 
 # Run benchmarks
 bench:
     cargo bench --workspace
 
-# Run tests + lint + fmt check
-ci: fmt lint test
+# Generate coverage report
+coverage:
+    cargo llvm-cov --workspace --all-features --html
+    @echo "Report: target/llvm-cov/html/index.html"
+
+# Run security and compliance checks
+security:
+    cargo audit
+    cargo deny check all
+    cargo machete
+
+# Generate documentation
+doc:
+    RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace --all-features
+
+# Full CI pipeline: fmt + lint + test + security + doc + wasm
+ci: fmt lint test security doc wasm-test
 
 # Build all targets
 build:
-    cargo build --workspace
+    cargo build --workspace --all-features
