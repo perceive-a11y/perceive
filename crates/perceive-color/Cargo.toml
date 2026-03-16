@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+readme = "README.md"
 keywords = ["accessibility", "wcag", "contrast", "color", "a11y"]
 categories = ["accessibility", "graphics"]
 

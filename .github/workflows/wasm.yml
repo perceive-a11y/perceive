@@ -14,7 +14,7 @@ on:
 
 jobs:
   wasm:
-    name: WASM Build
+    name: WASM Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,4 +23,11 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - uses: jetli/wasm-pack-action@v0.4.0
-      - run: wasm-pack build bindings/wasm --target web
+      - run: wasm-pack build bindings/wasm --target web --out-dir pkg-web
+      - run: wasm-pack build bindings/wasm --target nodejs --out-dir pkg-node
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Node.js integration test
+        run: node tests/wasm_node_test.mjs
