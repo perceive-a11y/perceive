@@ -1,6 +1,6 @@
 # The best plugin ideas for a solo developer targeting $1K/month
 
-**Accessibility compliance tools represent the single highest-opportunity category across every marketplace researched** — Unity, Unreal/FAB, Shopify, Figma, and JetBrains all have enormous, well-documented gaps that map precisely to this developer's WCAG, GPU/shader, and AI/ML skills. The European Accessibility Act (EAA), enforceable since June 2025 with fines up to **€100,000 per violation**, has created urgent demand that existing tools fail to meet. Combined with the CVAA for games, ADA lawsuits (8,800+ filed in 2024), and Section 508 for federal work, regulatory pressure is the rising tide that lifts all accessibility tools. Below are the seven most promising plugin ideas, ranked by evidence of demand, skill fit, and realistic revenue potential, followed by the strategic playbook proven by successful solo plugin developers.
+**Accessibility compliance tools represent the single highest-opportunity category across every marketplace researched** — Unity, Unreal/FAB, Shopify, and JetBrains all have enormous, well-documented gaps that map precisely to this developer's WCAG, GPU/shader, and AI/ML skills. The European Accessibility Act (EAA), enforceable since June 2025 with fines up to **€100,000 per violation**, has created urgent demand that existing tools fail to meet. Combined with the CVAA for games, ADA lawsuits (8,800+ filed in 2024), and Section 508 for federal work, regulatory pressure is the rising tide that lifts all accessibility tools. Below are the six most promising plugin ideas, ranked by evidence of demand, skill fit, and realistic revenue potential, followed by the strategic playbook proven by successful solo plugin developers.
 
 ---
 
@@ -34,21 +34,7 @@
 
 ---
 
-## 3. Figma accessible color palette generator: fastest path to revenue
-
-**The gap:** No Figma plugin generates complete, WCAG-guaranteed accessible color systems from brand colors using perceptual color science. Stark dominates the accessibility space with **390,000+ users** but charges $12/month ($120/year) and receives complaints about pricing being "too expensive and rigid for individuals." Free tools like Able and A11y are basic single-purpose checkers. The new competitor Aulys has only **55 users** — the mid-market is wide open.
-
-**Evidence of demand:** The EAA enforcement is driving design teams to validate accessibility earlier in the workflow. WCAG 2.2 added new criteria (Focus Appearance, Target Size) that most plugins don't cover. G2 reviews of Stark note it "does not offer automatic color correction." Designers want tools that fix problems, not just flag them.
-
-**What to build (MVP in 2 weeks):** Input 1–3 brand colors, generate a full accessible color palette (10–12 shades per hue) using OKLCH perceptual color space with GPU-accelerated calculations. Mathematically guarantee every text/background combination passes WCAG 2.2 AA or AAA. Include real-time shader-based colorblind preview and export as Figma styles, W3C design tokens, and CSS variables.
-
-**Pricing:** $5/month or $48/year via LemonSqueezy or Stripe (no Figma payment API waitlist needed). Free tier: 1 palette. Paid: unlimited palettes + exports + team sharing. **Figma takes 15%** if using native payments. At $5/month, need **200 subscribers for $1K/month** from a base of 13M+ Figma MAU.
-
-**Why this developer:** GPU/shader expertise for perceptual color space transforms (Bradford chromatic adaptation, Brettel/Viénot models). AI/ML for palette optimization. Accessibility expertise for WCAG compliance validation. This is the **fastest to build and most differentiated** opportunity where shader skills create genuine technical moat.
-
----
-
-## 4. Unreal/FAB accessibility compliance toolkit: best revenue split at 88/12
+## 3. Unreal/FAB accessibility compliance toolkit: best revenue split at 88/12
 
 **The gap:** Mirrors the Unity gap but with even less competition. The only "Accessibility Toolkit" on FAB is a basic Blueprint template. In April 2025, a technical artist with color vision deficiency posted a formal request on Epic's forums titled *"Request for Colorblind & Accessibility Requirements"* — reporting that UE5.5's debug views became "completely unusable" for colorblind developers. **Epic didn't even have "Accessibility" as an issue type in their bug tracker.** The multisensory accessibility plugin on GitHub hasn't made it to FAB.
 
@@ -60,7 +46,7 @@
 
 ---
 
-## 5. JetBrains federal compliance code scanner: zero competition, high willingness to pay
+## 4. JetBrains federal compliance code scanner: zero competition, high willingness to pay
 
 **The gap:** The JetBrains Marketplace has **zero plugins** for NIST SP 800-53, FedRAMP, FISMA, or CMMC compliance. The closest competitor, AIVory Guard, covers OWASP, GDPR, HIPAA, and PCI-DSS but explicitly lacks federal frameworks. Government contractors must comply with these standards and have IT tool budgets that dwarf indie developer spending. JetBrains users already pay $149–$249/year for IDEs — they expect and budget for quality tooling.
 
@@ -74,7 +60,7 @@
 
 ---
 
-## 6. Unity shader performance analyzer: high willingness to pay in a niche
+## 5. Unity shader performance analyzer: high willingness to pay in a niche
 
 **The gap:** Unity's shader debugging requires external tools — RenderDoc, PIX, Visual Studio Graphics Debugger, or platform-specific tools like Mali Offline Compiler. No in-editor shader complexity analysis exists. Unity's Frame Debugger shows draw calls but not shader cost breakdown. A "Shader Profiler" plugin appeared recently with minimal reviews. The Gabmeister blog notes: *"One tool that I wish Unity had by default is a reference viewer window"* — general sentiment that Unity's developer tools are lacking.
 
@@ -86,7 +72,7 @@
 
 ---
 
-## 7. AI-powered Unity test generation: no competition whatsoever
+## 6. AI-powered Unity test generation: no competition whatsoever
 
 **The gap:** Unity has **no AI-powered test generation tool** on the Asset Store. The built-in Unity Test Framework requires manual NUnit test writing. AltTester moved to enterprise licensing. Unium Automated Test Tools and U2Tester are basic and unmaintained. No existing tool uses LLMs to analyze code and generate test scaffolding.
 
@@ -114,12 +100,10 @@ The research points to a clear playbook optimized for this developer's unique sk
 
 **Phase 1 (weeks 1–3): Build the Shopify AI Accessibility Auditor.** This has the strongest combination of regulatory urgency (EAA already in effect), favorable economics (0% commission on first $1M), proven demand (overlay apps getting sued), and massive price gap ($0–$100/month overlays vs. $1,000+/month real solutions). Ship the MVP as a freemium app: free 5-page audit for installs and reviews, $19–$39/month for full scanning and fix suggestions. Target: **$1,000 MRR by month 4–6.**
 
-**Phase 2 (weeks 4–5): Build the Figma AccessiblePalette AI plugin.** This is the fastest to build (2 weeks), creates a second revenue stream with minimal overlap, and leverages GPU/shader skills for genuine technical differentiation. Use LemonSqueezy for payments to avoid Figma's approval waitlist. Price at $5/month. Target: **$500/month by month 6–8.**
+**Phase 2 (weeks 4–6): Build the Unity Accessibility Toolkit.** The game industry's accessibility gap is the most dramatic — the only plugin hasn't been updated in 5 years. Start with the WCAG checker + colorblind simulation shader leveraging shared color science crates. Price at $59 one-time. Target: **$500–$1,000/month by month 9–12.**
 
-**Phase 3 (weeks 6–8): Build the Unity Accessibility Toolkit.** The game industry's accessibility gap is the most dramatic — the only plugin hasn't been updated in 5 years. Start with the WCAG checker + colorblind simulation shader (leveraging code from the Figma plugin's color science). Price at $59 one-time. Target: **$500–$1,000/month by month 9–12.**
-
-This phased approach creates **three revenue streams across three marketplaces** by week 8, all built on the same core accessibility expertise, with shared color science and WCAG validation code. The accessibility theme provides **a coherent brand identity** — being known as the developer who makes "THE BEST" accessibility tools across every major design and development platform.
+This phased approach creates **two revenue streams across two marketplaces** by week 6, all built on the same core accessibility expertise, with shared color science and WCAG validation code. The accessibility theme provides **a coherent brand identity** — being known as the developer who makes "THE BEST" accessibility tools across every major development platform.
 
 ## Conclusion
 
-The intersection of accessibility compliance and AI represents a once-in-a-decade opportunity for a developer with this specific skill set. **Regulatory deadlines create non-discretionary demand** — merchants and studios don't choose whether to comply, only which tool to use. Across five marketplaces, the competitive landscape is remarkably similar: either no accessibility tools exist, or existing tools are abandoned, overlay-based (and legally ineffective), or priced exclusively for enterprise. The mid-market — affordable, technically sound, actually compliant — is empty everywhere. A developer with genuine WCAG expertise, GPU/shader skills for colorblind simulation, and AI/ML capabilities for automated auditing occupies a position that no current marketplace seller appears to match. The question isn't whether these tools would sell, but which marketplace to launch on first.
+The intersection of accessibility compliance and AI represents a once-in-a-decade opportunity for a developer with this specific skill set. **Regulatory deadlines create non-discretionary demand** — merchants and studios don't choose whether to comply, only which tool to use. Across four marketplaces, the competitive landscape is remarkably similar: either no accessibility tools exist, or existing tools are abandoned, overlay-based (and legally ineffective), or priced exclusively for enterprise. The mid-market — affordable, technically sound, actually compliant — is empty everywhere. A developer with genuine WCAG expertise, GPU/shader skills for colorblind simulation, and AI/ML capabilities for automated auditing occupies a position that no current marketplace seller appears to match. The question isn't whether these tools would sell, but which marketplace to launch on first.

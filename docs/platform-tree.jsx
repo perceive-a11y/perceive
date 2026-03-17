@@ -38,12 +38,12 @@ const layers = [
       {
         name: "a11y-color",
         desc: "WCAG 2.x luminance contrast, APCA/Lc scoring, OKLCH perceptual transforms, sRGB↔linear conversion",
-        usedBy: ["Figma Plugin", "Unity Toolkit", "Unreal Toolkit", "Shopify Auditor", "VPAT Copilot"],
+        usedBy: ["Unity Toolkit", "Unreal Toolkit", "Shopify Auditor", "VPAT Copilot"],
       },
       {
         name: "a11y-cvd",
         desc: "Colorblind simulation matrices (Brettel/Viénot for protanopia, deuteranopia, tritanopia, achromatopsia)",
-        usedBy: ["Figma Plugin", "Unity Toolkit", "Unreal Toolkit"],
+        usedBy: ["Unity Toolkit", "Unreal Toolkit"],
       },
       {
         name: "a11y-rules",
@@ -78,8 +78,8 @@ const layers = [
     items: [
       {
         name: "WASM (wasm-pack)",
-        desc: "Browser, Figma plugins, Shopify theme scanner. Near-native perf for color math in the browser.",
-        usedBy: ["Figma Plugin", "Shopify Auditor", "VPAT Copilot (web UI)"],
+        desc: "Browser, Shopify theme scanner. Near-native perf for color math in the browser.",
+        usedBy: ["Shopify Auditor", "VPAT Copilot (web UI)"],
       },
       {
         name: "Python (PyO3)",
@@ -124,8 +124,8 @@ const layers = [
       },
       {
         name: "Color Analysis Pipeline",
-        desc: "Input brand colors → full accessible palette (OKLCH) + contrast matrix + CVD simulation previews. Shared by design and game tools.",
-        usedBy: ["Figma Plugin", "Unity Toolkit", "Unreal Toolkit"],
+        desc: "Input brand colors → full accessible palette (OKLCH) + contrast matrix + CVD simulation previews. Shared by game engine tools.",
+        usedBy: ["Unity Toolkit", "Unreal Toolkit"],
       },
       {
         name: "Document Generator",
@@ -155,15 +155,6 @@ const layers = [
         roots: ["a11y-color", "a11y-rules", "a11y-report", "local-infer"],
         effort: "2–3 weeks",
         revenue: "$1–3K/mo",
-        priority: "★★★",
-      },
-      {
-        name: "Figma AccessiblePalette",
-        desc: "Color Pipeline + CVD Sim → Figma plugin via WASM. $5/mo. Pure color science, smallest surface area.",
-        usedBy: [],
-        roots: ["a11y-color", "a11y-cvd"],
-        effort: "1–2 weeks",
-        revenue: "$300–800/mo",
         priority: "★★★",
       },
       {
@@ -241,8 +232,8 @@ const CodeReuse = () => {
 
   // Manual corrections for accuracy
   const manualMap = {
-    "a11y-color": ["Shopify Accessibility Auditor", "Figma AccessiblePalette", "VPAT Copilot", "Unity Accessibility Toolkit", "Unreal Accessibility Toolkit"],
-    "a11y-cvd": ["Figma AccessiblePalette", "Unity Accessibility Toolkit", "Unreal Accessibility Toolkit"],
+    "a11y-color": ["Shopify Accessibility Auditor", "VPAT Copilot", "Unity Accessibility Toolkit", "Unreal Accessibility Toolkit"],
+    "a11y-cvd": ["Unity Accessibility Toolkit", "Unreal Accessibility Toolkit"],
     "a11y-rules": ["VPAT Copilot", "Shopify Accessibility Auditor", "JetBrains FedDev Scanner", "Unity Accessibility Toolkit", "Unreal Accessibility Toolkit", "PDF 508 Remediation"],
     "a11y-report": ["VPAT Copilot", "Shopify Accessibility Auditor", "JetBrains FedDev Scanner", "PDF 508 Remediation"],
     "pdf-a11y": ["PDF 508 Remediation", "VPAT Copilot"],
@@ -259,7 +250,7 @@ const CodeReuse = () => {
             </th>
             {allProducts.map((p) => (
               <th key={p} style={{ padding: "6px 4px", textAlign: "center", color: COLORS.textMuted, borderBottom: `1px solid ${COLORS.border}`, fontSize: 10, maxWidth: 80, lineHeight: 1.2 }}>
-                {p.replace(" Accessibility", "").replace(" AccessiblePalette", " Palette")}
+                {p.replace(" Accessibility", "")}
               </th>
             ))}
           </tr>
@@ -396,18 +387,17 @@ const BuildOrder = () => {
         "WASM build target working (wasm-pack)",
         "This is your calling card — stars, credibility, open-source cred",
       ],
-      unlocks: "Figma plugin, Unity/Unreal color tools",
+      unlocks: "Unity/Unreal color tools, Shopify auditor",
     },
     {
       phase: "Phase 1",
       time: "Week 2–4",
-      title: "First revenue: Figma + Shopify",
+      title: "First revenue: Shopify",
       items: [
-        "Figma AccessiblePalette using a11y-color WASM — ship in days",
         "Shopify auditor MVP using a11y-rules + headless scanner",
-        "Both earn revenue while you build the bigger products",
+        "Earns revenue while you build the bigger products",
       ],
-      unlocks: "$300–1K/mo within 2–4 months",
+      unlocks: "$1–3K/mo within 2–4 months",
     },
     {
       phase: "Phase 2",
@@ -492,7 +482,7 @@ export default function PlatformTree() {
             The Accessibility Platform
           </h1>
           <p style={{ color: COLORS.textMuted, fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>
-            6 Rust crates → 5 bindings → 5 shared services → 8 products.{" "}
+            6 Rust crates → 5 bindings → 5 shared services → 7 products.{" "}
             <span style={{ color: COLORS.accent }}>Every product shares roots.</span>
           </p>
         </div>
@@ -546,7 +536,7 @@ export default function PlatformTree() {
             <div style={{ marginTop: 20, padding: "14px 18px", background: COLORS.bgCard, borderRadius: 8, border: `1px solid ${COLORS.border}` }}>
               <div style={{ color: COLORS.accent, fontWeight: 700, fontSize: 13, marginBottom: 8 }}>The leverage math</div>
               <div style={{ color: COLORS.textSecondary, fontSize: 12, lineHeight: 1.7 }}>
-                <strong style={{ color: COLORS.textPrimary }}>a11y-color</strong> is written once and used in 5 products across 5 platforms (WASM, Python, C#, C++, Node).
+                <strong style={{ color: COLORS.textPrimary }}>a11y-color</strong> is written once and used in 4 products across 5 platforms (WASM, Python, C#, C++, Node).
                 <br />
                 <strong style={{ color: COLORS.textPrimary }}>a11y-rules</strong> is written once and drives VPAT generation, Shopify scanning, game engine checking, and IDE analysis.
                 <br />
@@ -568,7 +558,7 @@ export default function PlatformTree() {
             <CodeReuse />
             <div style={{ marginTop: 16, padding: "10px 12px", background: COLORS.bg, borderRadius: 6 }}>
               <div style={{ fontSize: 12, color: COLORS.textSecondary, lineHeight: 1.6 }}>
-                <strong style={{ color: COLORS.accent }}>Key insight:</strong> The Shopify auditor and VPAT Copilot share 4 of 6 crates. Building one gives you ~70% of the other for free. The Figma plugin and game engine toolkits share the color science core — build once, deploy to 3 marketplaces. Only the Pastoral App is relatively standalone (shares just local-infer).
+                <strong style={{ color: COLORS.accent }}>Key insight:</strong> The Shopify auditor and VPAT Copilot share 4 of 6 crates. Building one gives you ~70% of the other for free. The game engine toolkits share the color science core — build once, deploy to 2 marketplaces. Only the Pastoral App is relatively standalone (shares just local-infer).
               </div>
             </div>
           </div>
@@ -584,7 +574,7 @@ export default function PlatformTree() {
             <div style={{ marginTop: 16, padding: "10px 12px", background: COLORS.bg, borderRadius: 6 }}>
               <div style={{ fontSize: 12, color: COLORS.textSecondary, lineHeight: 1.6 }}>
                 <strong style={{ color: COLORS.accent }}>Total timeline to 5 revenue streams:</strong> ~14 weeks at 20hr/week.
-                By week 14, the root crates have been battle-tested across Figma, Shopify, Unity, Unreal, and a web app.
+                By week 14, the root crates have been battle-tested across Shopify, Unity, Unreal, and a web app.
                 Each new branch costs less to build because the roots are proven and the bindings are established.
                 The brand becomes "the accessibility tools developer" across every major platform.
               </div>
