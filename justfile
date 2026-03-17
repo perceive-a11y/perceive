@@ -52,3 +52,10 @@ ci: fmt lint test security doc wasm-test
 # Build all targets
 build:
     cargo build --workspace --all-features
+
+# Build WASM and serve the demo locally at http://localhost:8765
+demo:
+    wasm-pack build bindings/wasm --target web --out-dir pkg
+    ln -sfn ../bindings/wasm/pkg demo/pkg
+    @echo "Serving demo at http://localhost:8765"
+    python3 -m http.server 8765 --bind 127.0.0.1 --directory demo

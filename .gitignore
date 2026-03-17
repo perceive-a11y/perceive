@@ -8,6 +8,9 @@ Cargo.lock
 /bindings/wasm/pkg-web/
 /bindings/wasm/pkg-node/
 
+# Demo dev symlink
+/demo/pkg
+
 # IDE
 .idea/
 .vscode/
