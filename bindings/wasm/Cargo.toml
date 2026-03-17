@@ -15,5 +15,8 @@ perceive-color.workspace = true
 perceive-cvd.workspace = true
 wasm-bindgen = "0.2"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = true
+
 [lints]
 workspace = true
