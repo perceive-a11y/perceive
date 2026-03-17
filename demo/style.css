@@ -1,0 +1,201 @@
+/* Perceive CVD Demo — custom theme over Pico CSS */
+
+/* Import fonts: Inter for body, Space Grotesk for headings */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap');
+
+:root {
+    --pico-font-family: 'Inter', system-ui, sans-serif;
+    --pico-font-size: 16px;
+    --pico-border-radius: 0.5rem;
+
+    /* Light theme accents */
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --surface-raised: #ffffff;
+    --surface-bg: #f8fafc;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-subtle: #e2e8f0;
+    --drop-zone-bg: #f1f5f9;
+    --drop-zone-border: #94a3b8;
+    --drop-zone-active-border: var(--accent);
+    --drop-zone-active-bg: #eff6ff;
+}
+
+[data-theme="dark"] {
+    --accent: #60a5fa;
+    --accent-hover: #93bbfd;
+    --surface-raised: #1e293b;
+    --surface-bg: #0f172a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-subtle: #334155;
+    --drop-zone-bg: #1e293b;
+    --drop-zone-border: #475569;
+    --drop-zone-active-border: var(--accent);
+    --drop-zone-active-bg: #1e3a5f;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background: var(--surface-bg);
+    color: var(--text-primary);
+    margin: 0;
+    min-height: 100vh;
+}
+
+h1, h2, h3 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+}
+
+/* Top bar */
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-raised);
+}
+
+header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+header .subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-left: 0.75rem;
+    font-weight: 400;
+}
+
+#theme-toggle {
+    background: none;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--pico-border-radius);
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+/* Main content */
+main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem;
+}
+
+/* Controls row */
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.controls label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.controls input[type="range"] {
+    width: 180px;
+}
+
+.severity-value {
+    font-variant-numeric: tabular-nums;
+    min-width: 3ch;
+}
+
+/* Drop zone */
+.drop-zone {
+    border: 2px dashed var(--drop-zone-border);
+    border-radius: var(--pico-border-radius);
+    background: var(--drop-zone-bg);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 1.5rem;
+}
+
+.drop-zone:hover,
+.drop-zone.active {
+    border-color: var(--drop-zone-active-border);
+    background: var(--drop-zone-active-bg);
+}
+
+.drop-zone p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.drop-zone .hint {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    opacity: 0.7;
+}
+
+/* Image grid */
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.image-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--pico-border-radius);
+    overflow: hidden;
+}
+
+.image-card .card-label {
+    padding: 0.6rem 0.85rem;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.image-card .card-label .timing {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.75rem;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+}
+
+.image-card canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* Loading state */
+.loading {
+    display: none;
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.loading.visible {
+    display: block;
+}
+
+/* Hidden file input */
+#file-input { display: none; }
