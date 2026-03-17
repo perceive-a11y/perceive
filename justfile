@@ -19,8 +19,8 @@ fmt-fix:
 
 # Build WASM bindings (web + nodejs)
 wasm-build:
-    wasm-pack build bindings/wasm --target web --out-dir pkg-web --scope perceive
-    wasm-pack build bindings/wasm --target nodejs --out-dir pkg-node --scope perceive
+    wasm-pack build bindings/wasm --target web --out-dir pkg-web --scope perceive-a11y
+    wasm-pack build bindings/wasm --target nodejs --out-dir pkg-node --scope perceive-a11y
 
 # Run WASM Node.js integration tests
 wasm-test:
