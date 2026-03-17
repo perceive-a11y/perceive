@@ -8,6 +8,7 @@
 Colorblind (color vision deficiency) simulation using Brettel and Viénot models — in Rust.
 
 Part of the [Perceive](https://github.com/perceive-a11y/perceive) accessibility platform.
+[Live demo](https://perceive-a11y.github.io/perceive/) — drag an image in and see it through different types of color vision deficiency.
 
 ## Features
 
