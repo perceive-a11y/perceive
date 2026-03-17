@@ -38,31 +38,32 @@ fn apply_matrix(m: &[f64; 9], c: Color) -> Color {
 }
 
 // Brettel protan simulation matrices (two half-planes).
-// Derived from Brettel et al. 1997, Table 2.
+// Derived from Brettel et al. 1997 using Smith & Pokorny cone fundamentals.
+// Values sourced from the DaltonLens reference implementation.
 const PROTAN_A: [f64; 9] = [
-    0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998,
+    0.14980, 1.19548, -0.34528, 0.10764, 0.84864, 0.04372, 0.00384, -0.00540, 1.00156,
 ];
 const PROTAN_B: [f64; 9] = [
-    0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998,
+    0.14570, 1.16172, -0.30742, 0.10816, 0.85291, 0.03892, 0.00386, -0.00524, 1.00139,
 ];
-// Separator: the neutral axis dot product sign selects half-plane.
-const PROTAN_SEP: [f64; 3] = [0.0, 0.0, 1.0];
+// Separator normal in linear RGB: dot product sign selects half-plane.
+const PROTAN_SEP: [f64; 3] = [0.00048, 0.00393, -0.00441];
 
 const DEUTAN_A: [f64; 9] = [
-    0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.011820, 0.042940, 0.968881,
+    0.36477, 0.86381, -0.22858, 0.26294, 0.64245, 0.09462, -0.02006, 0.02728, 0.99278,
 ];
 const DEUTAN_B: [f64; 9] = [
-    0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.011820, 0.042940, 0.968881,
+    0.37298, 0.88166, -0.25464, 0.25954, 0.63506, 0.10540, -0.01980, 0.02784, 0.99196,
 ];
-const DEUTAN_SEP: [f64; 3] = [0.0, 0.0, 1.0];
+const DEUTAN_SEP: [f64; 3] = [-0.00281, -0.00611, 0.00892];
 
 const TRITAN_A: [f64; 9] = [
-    1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.303900,
+    1.01277, 0.13548, -0.14826, -0.01243, 0.86812, 0.14431, 0.07589, 0.80500, 0.11911,
 ];
 const TRITAN_B: [f64; 9] = [
-    1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.303900,
+    0.93678, 0.18979, -0.12657, 0.06154, 0.81526, 0.12320, -0.37562, 1.12767, 0.24796,
 ];
-const TRITAN_SEP: [f64; 3] = [1.0, 0.0, 0.0];
+const TRITAN_SEP: [f64; 3] = [0.03901, -0.02788, -0.01113];
 
 fn select_half_plane(color: Color, sep: &[f64; 3]) -> bool {
     let dot = sep[0] * color.r + sep[1] * color.g + sep[2] * color.b;
@@ -93,9 +94,13 @@ fn simulate_tritan(color: Color) -> Color {
     }
 }
 
+/// BT.709 / sRGB luminance coefficients for the R, G, B channels.
+pub(crate) const LUMA_R: f64 = 0.2126;
+pub(crate) const LUMA_G: f64 = 0.7152;
+pub(crate) const LUMA_B: f64 = 0.0722;
+
 fn simulate_achromat(color: Color) -> Color {
-    // Achromat: convert to luminance
-    let l = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+    let l = LUMA_R * color.r + LUMA_G * color.g + LUMA_B * color.b;
     Color::new(l, l, l)
 }
 
