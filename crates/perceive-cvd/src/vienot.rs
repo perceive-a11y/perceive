@@ -1,5 +1,6 @@
 use perceive_color::Color;
 
+use crate::brettel::{LUMA_B, LUMA_G, LUMA_R};
 use crate::types::CvdType;
 
 /// Simulate color vision deficiency using the Viénot et al. (1999) model.
@@ -14,7 +15,7 @@ pub fn simulate_fast(color: Color, cvd_type: CvdType) -> Color {
         CvdType::Deutan => &VIENOT_DEUTAN,
         CvdType::Tritan => &VIENOT_TRITAN,
         CvdType::Achromat => {
-            let l = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+            let l = LUMA_R * color.r + LUMA_G * color.g + LUMA_B * color.b;
             return Color::new(l, l, l);
         }
     };
