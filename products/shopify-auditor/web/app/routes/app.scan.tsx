@@ -33,14 +33,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     update: {},
   });
 
-  // Check plan limits
-  if (merchant.plan === "free") {
-    const existingScans = await prisma.scan.count({
-      where: { merchantId: merchant.id },
-    });
-    // Free plan: unlimited scans but limited to 5 template files per scan
-  }
-
   // Get active theme
   const theme = await getActiveTheme(admin);
   if (!theme) {
@@ -61,9 +53,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`[scan] Fetched ${files.length} theme files:`, files.map(f => f.filename));
 
-  // Apply free plan file limit (relaxed during dev for testing)
-  const isDev = process.env.NODE_ENV !== "production";
-  const filesToScan = isDev ? files : (merchant.plan === "free" ? files.slice(0, 5) : files);
+  // Apply free plan file limit
+  const filesToScan = merchant.plan === "free" ? files.slice(0, 5) : files;
 
   // Create scan record
   const scan = await prisma.scan.create({

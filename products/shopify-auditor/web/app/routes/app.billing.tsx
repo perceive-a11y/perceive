@@ -225,16 +225,22 @@ export default function BillingPage() {
                 {currentPlan !== plan.name && (
                   <Form method="post">
                     <input type="hidden" name="plan" value={plan.name} />
-                    <Button
-                      variant={plan.name === "starter" ? "primary" : "secondary"}
-                      submit
-                      fullWidth
-                      loading={isSubmitting}
-                    >
-                      {plan.price === 0
-                        ? "Downgrade"
-                        : `Upgrade to ${plan.label}`}
-                    </Button>
+                    {(() => {
+                      const currentPrice = PLANS.find((p) => p.name === currentPlan)?.price ?? 0;
+                      const isDowngrade = plan.price < currentPrice;
+                      return (
+                        <Button
+                          variant={isDowngrade ? "secondary" : "primary"}
+                          submit
+                          fullWidth
+                          loading={isSubmitting}
+                        >
+                          {isDowngrade
+                            ? `Downgrade to ${plan.label}`
+                            : `Upgrade to ${plan.label}`}
+                        </Button>
+                      );
+                    })()}
                   </Form>
                 )}
               </BlockStack>
