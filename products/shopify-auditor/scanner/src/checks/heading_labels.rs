@@ -45,7 +45,8 @@ pub fn check(
 
         let text = elem.inner_text.trim();
 
-        if text.is_empty() {
+        if text.is_empty() && elem.inner_text.is_empty() {
+            // Truly empty (not Liquid-stripped whitespace)
             findings.push(Finding {
                 criterion_id: "2.4.6".to_owned(),
                 severity: Severity::Serious,
@@ -59,6 +60,23 @@ pub fn check(
                 ),
                 suggestion: "Add descriptive text to the heading, or remove \
                              the empty heading element."
+                    .to_owned(),
+            });
+        } else if text.is_empty() {
+            // Whitespace-only after trim = Liquid-stripped dynamic content
+            findings.push(Finding {
+                criterion_id: "2.4.6".to_owned(),
+                severity: Severity::Minor,
+                element: format!("<{}>", elem.tag),
+                file_path: file_path.to_owned(),
+                line: line_fn(elem.byte_offset),
+                message: format!(
+                    "Heading <{tag}> text depends on a dynamic value. Ensure \
+                     it always resolves to descriptive text.",
+                    tag = elem.tag,
+                ),
+                suggestion: "Add a fallback value to ensure the heading \
+                             is never empty at runtime."
                     .to_owned(),
             });
         } else if GENERIC_HEADINGS.contains(&text.to_lowercase().as_str()) {
@@ -106,10 +124,12 @@ mod tests {
     }
 
     #[test]
-    fn flags_whitespace_heading() {
+    fn flags_whitespace_heading_as_minor() {
+        // Whitespace = Liquid-stripped content, downgrade severity
         let elements = vec![heading("h2", "   ")];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::Minor);
     }
 
     #[test]

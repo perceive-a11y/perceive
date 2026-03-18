@@ -53,7 +53,8 @@ pub fn check(
 
     for title in &titles {
         let text = title.inner_text.trim();
-        if text.is_empty() {
+        if text.is_empty() && title.inner_text.is_empty() {
+            // Truly empty title
             findings.push(Finding {
                 criterion_id: "2.4.2".to_owned(),
                 severity: Severity::Serious,
@@ -68,6 +69,10 @@ pub fn check(
                             <title>{{ page_title }} - {{ shop.name }}</title>."
                     .to_owned(),
             });
+        } else if text.is_empty() {
+            // Whitespace-only = Liquid-stripped dynamic title (common pattern)
+            // This is expected — {{ page_title }} provides text at runtime.
+            // Don't flag it.
         }
     }
 
@@ -114,11 +119,12 @@ mod tests {
     }
 
     #[test]
-    fn flags_whitespace_only_title() {
-        // After Liquid stripping, {{ page_title }} becomes whitespace
+    fn allows_liquid_stripped_title() {
+        // After Liquid stripping, {{ page_title }} becomes whitespace —
+        // this is expected and should NOT be flagged.
         let elements = vec![html_el(), title_el("                    ")];
         let findings = check(&elements, "layout/theme.liquid", &|_| 1);
-        assert_eq!(findings.len(), 1);
+        assert!(findings.is_empty());
     }
 
     #[test]

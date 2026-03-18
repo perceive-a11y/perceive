@@ -27,8 +27,14 @@ pub fn check(
     html_elements
         .iter()
         .filter(|e| {
-            let lang = e.attr("lang").unwrap_or("");
-            lang.trim().is_empty()
+            match e.attr("lang") {
+                // No lang attribute, or lang="" (explicitly empty)
+                None | Some("") => true,
+                // Whitespace-only = Liquid-stripped (e.g. {{ request.locale.iso_code }})
+                // Expected to have a value at runtime — skip.
+                Some(lang) if lang.trim().is_empty() => false,
+                Some(_) => false, // Has a real value
+            }
         })
         .map(|e| Finding {
             criterion_id: "3.1.1".to_owned(),
@@ -76,6 +82,15 @@ mod tests {
         let elements = vec![html_el(&[("lang", "")])];
         let findings = check(&elements, "layout/theme.liquid", &|_| 1);
         assert_eq!(findings.len(), 1);
+    }
+
+    #[test]
+    fn allows_liquid_stripped_lang() {
+        // {{ request.locale.iso_code }} becomes whitespace after stripping —
+        // expected to have a value at runtime.
+        let elements = vec![html_el(&[("lang", "                         ")])];
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1);
+        assert!(findings.is_empty());
     }
 
     #[test]

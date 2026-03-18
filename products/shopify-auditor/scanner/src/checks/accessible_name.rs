@@ -68,7 +68,8 @@ pub fn check(
             continue;
         }
 
-        if has_accessible_name(elem) {
+        let name_status = accessible_name_status(elem);
+        if name_status == NameStatus::Present {
             continue;
         }
 
@@ -85,67 +86,102 @@ pub fn check(
             .map(|r| format!(" (role=\"{r}\")"))
             .unwrap_or_default();
 
-        findings.push(Finding {
-            criterion_id: "4.1.2".to_owned(),
-            severity: Severity::Critical,
-            element: format!("<{}{role_info}>", elem.tag),
-            file_path: file_path.to_owned(),
-            line: line_fn(elem.byte_offset),
-            message: format!(
-                "{role_desc} has no accessible name. Screen readers cannot \
-                 announce its purpose to users."
-            ),
-            suggestion: "Add visible text content, an `aria-label` attribute, \
-                         or an `aria-labelledby` reference to provide an \
-                         accessible name."
-                .to_owned(),
-        });
+        match name_status {
+            NameStatus::LiquidDynamic => {
+                // Inner text is all whitespace — likely a Liquid expression
+                // that provides text at runtime. Downgrade to moderate.
+                findings.push(Finding {
+                    criterion_id: "4.1.2".to_owned(),
+                    severity: Severity::Moderate,
+                    element: format!("<{}{role_info}>", elem.tag),
+                    file_path: file_path.to_owned(),
+                    line: line_fn(elem.byte_offset),
+                    message: format!(
+                        "{role_desc} accessible name depends on a dynamic value \
+                         that may be empty at runtime."
+                    ),
+                    suggestion: "Ensure the element always has visible text or \
+                                 add an `aria-label` as a fallback."
+                        .to_owned(),
+                });
+            }
+            NameStatus::Missing => {
+                findings.push(Finding {
+                    criterion_id: "4.1.2".to_owned(),
+                    severity: Severity::Critical,
+                    element: format!("<{}{role_info}>", elem.tag),
+                    file_path: file_path.to_owned(),
+                    line: line_fn(elem.byte_offset),
+                    message: format!(
+                        "{role_desc} has no accessible name. Screen readers \
+                         cannot announce its purpose to users."
+                    ),
+                    suggestion: "Add visible text content, an `aria-label` \
+                                 attribute, or an `aria-labelledby` reference \
+                                 to provide an accessible name."
+                        .to_owned(),
+                });
+            }
+            NameStatus::Present => unreachable!(),
+        }
     }
 
     findings
 }
 
-/// Determine if an element has an accessible name through any mechanism.
-fn has_accessible_name(elem: &HtmlElement) -> bool {
-    // 1. aria-label (non-empty)
+/// Status of an element's accessible name.
+#[derive(Debug, PartialEq, Eq)]
+enum NameStatus {
+    /// Has a concrete accessible name.
+    Present,
+    /// Inner text is all whitespace — likely a Liquid expression that
+    /// provides text at runtime.
+    LiquidDynamic,
+    /// No accessible name at all.
+    Missing,
+}
+
+/// Determine whether an element has an accessible name.
+fn accessible_name_status(elem: &HtmlElement) -> NameStatus {
+    // 1. aria-label (non-empty, non-whitespace-only)
     if let Some(label) = elem.attr("aria-label") {
         if !label.trim().is_empty() {
-            return true;
+            return NameStatus::Present;
         }
     }
 
-    // 2. aria-labelledby (references another element — we can't resolve
-    //    the reference statically, but its presence indicates intent)
+    // 2. aria-labelledby (references another element — presence = intent)
     if elem.has_attr("aria-labelledby") {
-        return true;
+        return NameStatus::Present;
     }
 
-    // 3. title attribute (serves as fallback accessible name)
+    // 3. title attribute (fallback accessible name)
     if let Some(title) = elem.attr("title") {
         if !title.trim().is_empty() {
-            return true;
+            return NameStatus::Present;
         }
     }
 
-    // 4. Inner text content (for buttons and links)
-    if !elem.inner_text.trim().is_empty() {
-        return true;
+    // 4. Inner text content
+    let text = &elem.inner_text;
+    if !text.trim().is_empty() {
+        return NameStatus::Present;
+    }
+    // Non-empty but all whitespace = Liquid-stripped dynamic content
+    if !text.is_empty() {
+        return NameStatus::LiquidDynamic;
     }
 
-    // 5. For <a>/<button>, check for nested img with alt text
-    //    (we can't see nested elements in our flat extraction model,
-    //    so check if aria-label/title covers it)
-
-    // 6. Input elements with value attribute
+    // 5. Input elements with value attribute
     if elem.tag == "input" {
         if let Some(val) = elem.attr("value") {
             if !val.trim().is_empty() {
-                return true;
+                return NameStatus::Present;
             }
         }
     }
 
-    false
+    NameStatus::Missing
 }
 
 #[cfg(test)]
@@ -231,11 +267,14 @@ mod tests {
     }
 
     #[test]
-    fn flags_whitespace_only_text() {
-        // After Liquid stripping, text might be all whitespace
+    fn flags_whitespace_only_text_as_moderate() {
+        // After Liquid stripping, text might be all whitespace —
+        // downgrade to moderate since Liquid likely provides text at runtime
         let elements = vec![el("button", &[], "         ")];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::Moderate);
+        assert!(findings[0].message.contains("dynamic value"));
     }
 
     #[test]
