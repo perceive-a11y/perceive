@@ -27,31 +27,32 @@ const AAA_NORMAL: f64 = 7.0;
 pub fn check(css_props: &[SelectorProperties], file_path: &str) -> Vec<Finding> {
     let mut findings = Vec::new();
 
+    // Count selectors using CSS variables for a single summary finding
+    // instead of flooding the report with one finding per selector.
+    let variable_count = css_props
+        .iter()
+        .filter(|p| p.color_uses_variable || p.bg_uses_variable)
+        .count();
+    if variable_count > 0 {
+        findings.push(Finding {
+            criterion_id: "1.4.3".to_owned(),
+            severity: Severity::Minor,
+            element: format!("{variable_count} selectors"),
+            file_path: file_path.to_owned(),
+            line: 0,
+            message: format!(
+                "{variable_count} CSS selectors use custom properties (variables) \
+                 for colors. Contrast cannot be verified statically."
+            ),
+            suggestion: "Verify contrast manually using browser DevTools \
+                         accessibility panel or a contrast checker tool."
+                .to_owned(),
+        });
+    }
+
     for props in css_props {
-        // Check for CSS variable usage that prevents static contrast analysis
+        // Skip selectors with CSS variables — already reported as summary
         if props.color_uses_variable || props.bg_uses_variable {
-            findings.push(Finding {
-                criterion_id: "1.4.3".to_owned(),
-                severity: Severity::Minor,
-                element: props.selector.clone(),
-                file_path: file_path.to_owned(),
-                line: 0,
-                message: format!(
-                    "Contrast cannot be verified: {} uses a CSS custom property \
-                     (variable). Ensure the resolved colors meet a 4.5:1 ratio.",
-                    if props.color_uses_variable && props.bg_uses_variable {
-                        "text color and background color"
-                    } else if props.color_uses_variable {
-                        "text color"
-                    } else {
-                        "background color"
-                    }
-                ),
-                suggestion: "Manually verify that the CSS variable values produce \
-                             sufficient contrast. Tools like the browser DevTools \
-                             accessibility panel can check computed contrast."
-                    .to_owned(),
-            });
             continue;
         }
 
@@ -160,27 +161,23 @@ mod tests {
     }
 
     #[test]
-    fn flags_css_variable_color() {
-        let p = SelectorProperties {
-            selector: ".text-primary".to_owned(),
-            color_uses_variable: true,
-            ..Default::default()
-        };
-        let findings = check(&[p], "style.css");
+    fn summarizes_css_variable_selectors() {
+        let props = vec![
+            SelectorProperties {
+                selector: ".text-primary".to_owned(),
+                color_uses_variable: true,
+                ..Default::default()
+            },
+            SelectorProperties {
+                selector: ".hero".to_owned(),
+                bg_uses_variable: true,
+                ..Default::default()
+            },
+        ];
+        let findings = check(&props, "style.css");
+        // Should produce ONE summary finding, not one per selector
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].severity, Severity::Minor);
-        assert!(findings[0].message.contains("CSS custom property"));
-    }
-
-    #[test]
-    fn flags_css_variable_background() {
-        let p = SelectorProperties {
-            selector: ".hero".to_owned(),
-            bg_uses_variable: true,
-            ..Default::default()
-        };
-        let findings = check(&[p], "style.css");
-        assert_eq!(findings.len(), 1);
-        assert!(findings[0].message.contains("background color"));
+        assert!(findings[0].message.contains("2 CSS selectors"));
     }
 }
