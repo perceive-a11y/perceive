@@ -67,10 +67,11 @@ fn flush_pending(
         elements.lock().expect("lock poisoned").push(HtmlElement {
             tag: p.tag,
             attrs: p.attrs,
-            inner_text: buf.trim().to_owned(),
+            // Preserve raw text (don't trim) so checks can distinguish
+            // truly empty elements from Liquid-stripped whitespace.
+            inner_text: std::mem::take(&mut *buf),
             byte_offset: 0,
         });
-        buf.clear();
     }
 }
 
