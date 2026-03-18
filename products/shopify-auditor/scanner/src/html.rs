@@ -84,11 +84,11 @@ fn build_handlers<'h>(
 ) -> Vec<(Cow<'h, Selector>, ElementContentHandlers<'h>)> {
     let mut handlers = Vec::new();
 
-    // -- Void/simple tags: html, img, input, select, textarea --
+    // -- Void/simple tags: html, img, input, select, textarea, main --
     let el_void = elements.clone();
     let p_void = pending.clone();
     let tb_void = text_buf.clone();
-    handlers.push(element!("html, img, input, select, textarea", move |e| {
+    handlers.push(element!("html, img, input, select, textarea, main", move |e| {
         flush_pending(&p_void, &tb_void, &el_void);
         let attrs: Vec<(String, String)> = e
             .attributes()
@@ -148,8 +148,8 @@ fn build_handlers<'h>(
         move |e| {
             let tag = e.tag_name().to_lowercase();
             let known = [
-                "html", "img", "input", "select", "textarea", "a", "button", "h1", "h2", "h3",
-                "h4", "h5", "h6", "label", "title",
+                "html", "img", "input", "select", "textarea", "main",
+                "a", "button", "h1", "h2", "h3", "h4", "h5", "h6", "label", "title",
             ];
             if known.contains(&tag.as_str()) {
                 return Ok(());

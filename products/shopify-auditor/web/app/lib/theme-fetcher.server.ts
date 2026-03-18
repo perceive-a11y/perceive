@@ -49,10 +49,21 @@ const THEME_FILE_LIST_QUERY = `#graphql
   }
 `;
 
-interface Theme {
+export interface Theme {
   id: string;
   name: string;
   role: string;
+}
+
+/**
+ * Get all themes for the shop (up to 10).
+ */
+export async function getThemes(
+  admin: AdminApiContext["admin"]
+): Promise<Theme[]> {
+  const response = await admin.graphql(THEMES_QUERY);
+  const data = await response.json();
+  return data.data?.themes?.nodes ?? [];
 }
 
 /**
@@ -61,9 +72,7 @@ interface Theme {
 export async function getActiveTheme(
   admin: AdminApiContext["admin"]
 ): Promise<Theme | null> {
-  const response = await admin.graphql(THEMES_QUERY);
-  const data = await response.json();
-  const themes = data.data?.themes?.nodes ?? [];
+  const themes = await getThemes(admin);
   return themes.find((t: Theme) => t.role === "MAIN") ?? null;
 }
 

@@ -3,7 +3,9 @@
 //! Parses CSS stylesheets to extract properties relevant to accessibility
 //! checks: colors, outlines, dimensions on interactive elements.
 
+use lightningcss::properties::custom::UnparsedProperty;
 use lightningcss::properties::Property;
+use lightningcss::properties::PropertyId;
 use lightningcss::properties::border::LineStyle;
 use lightningcss::properties::outline::OutlineStyle;
 use lightningcss::properties::size::Size;
@@ -23,11 +25,16 @@ pub struct CssColorPair {
 
 /// Properties extracted from a CSS selector relevant to a11y checks.
 #[derive(Debug, Clone, Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct SelectorProperties {
     /// The CSS selector string.
     pub selector: String,
     /// Text and background colors.
     pub colors: CssColorPair,
+    /// Whether `color` uses a CSS variable (e.g. `var(--color-fg)`).
+    pub color_uses_variable: bool,
+    /// Whether `background-color` uses a CSS variable.
+    pub bg_uses_variable: bool,
     /// Whether `outline: none` or `outline: 0` is set.
     pub outline_removed: bool,
     /// Whether this rule targets `:focus` pseudo-class.
@@ -93,6 +100,8 @@ fn extract_from_rule(rule: &CssRule, results: &mut Vec<SelectorProperties>) {
             // Only include rules with a11y-relevant properties
             if props.colors.color.is_some()
                 || props.colors.background.is_some()
+                || props.color_uses_variable
+                || props.bg_uses_variable
                 || props.outline_removed
                 || props.width_px.is_some()
                 || props.height_px.is_some()
@@ -129,6 +138,12 @@ fn extract_property(property: &Property, props: &mut SelectorProperties) {
                 props.colors.background = Some(hex);
             }
         }
+        // Detect CSS variable usage (e.g. `color: var(--color-fg)`)
+        // which lightningcss stores as Unparsed because it can't resolve
+        // the variable at parse time.
+        Property::Unparsed(unparsed) => {
+            extract_unparsed_property(unparsed, props);
+        }
         Property::OutlineStyle(style, ..) => {
             // outline-style: none means outline is removed
             if matches!(style, OutlineStyle::LineStyle(LineStyle::None)) {
@@ -146,6 +161,19 @@ fn extract_property(property: &Property, props: &mut SelectorProperties) {
         }
         Property::MinHeight(size, ..) => {
             props.min_height_px = size_to_px(size);
+        }
+        _ => {}
+    }
+}
+
+/// Handle CSS properties that use `var()` or other unresolvable values.
+fn extract_unparsed_property(unparsed: &UnparsedProperty, props: &mut SelectorProperties) {
+    match &unparsed.property_id {
+        PropertyId::Color => {
+            props.color_uses_variable = true;
+        }
+        PropertyId::BackgroundColor => {
+            props.bg_uses_variable = true;
         }
         _ => {}
     }

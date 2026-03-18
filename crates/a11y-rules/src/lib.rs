@@ -95,8 +95,8 @@ pub fn default_severity(criterion: &Criterion) -> Severity {
     match criterion.id {
         // Definite barriers: missing alt text, invalid ARIA
         "1.1.1" | "4.1.2" => Severity::Critical,
-        // Likely barriers: heading structure, contrast, focus, lang
-        "1.3.1" | "1.4.3" | "2.4.7" | "3.1.1" => Severity::Serious,
+        // Likely barriers: heading structure, contrast, focus, lang, page title
+        "1.3.1" | "1.4.3" | "2.4.7" | "3.1.1" | "2.4.2" => Severity::Serious,
         // Enhanced contrast is AAA — advisory
         "1.4.6" => Severity::Minor,
         // Everything else defaults to Moderate

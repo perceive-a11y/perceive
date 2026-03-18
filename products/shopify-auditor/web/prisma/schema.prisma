@@ -41,6 +41,7 @@ model Scan {
   merchantId    Int
   merchant      Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   status        String    @default("pending")
+  themeName     String    @default("")
   templateCount Int       @default(0)
   reportToken   String?   @unique
   startedAt     DateTime  @default(now())

@@ -96,6 +96,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     scan: {
       id: scan.id,
       status: scan.status,
+      themeName: scan.themeName || "Active theme",
       completedAt: scan.completedAt?.toISOString() ?? null,
     },
     summary,
@@ -305,7 +306,8 @@ export default function DashboardPage() {
           <Card>
             <BlockStack gap="200">
               <Text as="p" variant="bodySm" tone="subdued">
-                Last scan: {summary?.completedAt
+                Theme: {data.scan?.themeName ?? "Unknown"}{" "}
+                | Last scan: {summary?.completedAt
                   ? new Date(summary.completedAt).toLocaleString()
                   : "In progress"}{" "}
                 | Files scanned: {summary?.filesScanned ?? 0}

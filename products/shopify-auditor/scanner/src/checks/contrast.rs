@@ -16,6 +16,8 @@ const AAA_NORMAL: f64 = 7.0;
 /// Reports findings for:
 /// - SC 1.4.3 (AA) — ratio < 4.5:1
 /// - SC 1.4.6 (AAA) — ratio < 7:1 (reported as Minor)
+/// - SC 1.4.3 — color or background uses CSS variables that cannot be
+///   statically verified (reported as Minor/informational)
 ///
 /// # Arguments
 ///
@@ -26,6 +28,33 @@ pub fn check(css_props: &[SelectorProperties], file_path: &str) -> Vec<Finding> 
     let mut findings = Vec::new();
 
     for props in css_props {
+        // Check for CSS variable usage that prevents static contrast analysis
+        if props.color_uses_variable || props.bg_uses_variable {
+            findings.push(Finding {
+                criterion_id: "1.4.3".to_owned(),
+                severity: Severity::Minor,
+                element: props.selector.clone(),
+                file_path: file_path.to_owned(),
+                line: 0,
+                message: format!(
+                    "Contrast cannot be verified: {} uses a CSS custom property \
+                     (variable). Ensure the resolved colors meet a 4.5:1 ratio.",
+                    if props.color_uses_variable && props.bg_uses_variable {
+                        "text color and background color"
+                    } else if props.color_uses_variable {
+                        "text color"
+                    } else {
+                        "background color"
+                    }
+                ),
+                suggestion: "Manually verify that the CSS variable values produce \
+                             sufficient contrast. Tools like the browser DevTools \
+                             accessibility panel can check computed contrast."
+                    .to_owned(),
+            });
+            continue;
+        }
+
         // We need both foreground and background to check contrast
         let (Some(fg_hex), Some(bg_hex)) = (&props.colors.color, &props.colors.background) else {
             continue;
@@ -128,5 +157,30 @@ mod tests {
         };
         let findings = check(&[p], "style.css");
         assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn flags_css_variable_color() {
+        let p = SelectorProperties {
+            selector: ".text-primary".to_owned(),
+            color_uses_variable: true,
+            ..Default::default()
+        };
+        let findings = check(&[p], "style.css");
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::Minor);
+        assert!(findings[0].message.contains("CSS custom property"));
+    }
+
+    #[test]
+    fn flags_css_variable_background() {
+        let p = SelectorProperties {
+            selector: ".hero".to_owned(),
+            bg_uses_variable: true,
+            ..Default::default()
+        };
+        let findings = check(&[p], "style.css");
+        assert_eq!(findings.len(), 1);
+        assert!(findings[0].message.contains("background color"));
     }
 }

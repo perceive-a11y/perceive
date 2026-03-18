@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import { Form, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -10,21 +10,33 @@ import {
   Button,
   Banner,
   ProgressBar,
+  Select,
 } from "@shopify/polaris";
+import { useState } from "react";
 
 import shopify from "~/lib/shopify.server";
 import prisma from "~/lib/db.server";
-import { getActiveTheme, fetchThemeFiles } from "~/lib/theme-fetcher.server";
+import { getThemes, fetchThemeFiles } from "~/lib/theme-fetcher.server";
 import { scanTheme } from "~/lib/scanner.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await shopify.authenticate.admin(request);
-  return json({});
+  const { admin } = await shopify.authenticate.admin(request);
+  const themes = await getThemes(admin);
+
+  return json({
+    themes: themes.map((t) => ({
+      id: t.id,
+      name: t.name,
+      role: t.role,
+    })),
+  });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await shopify.authenticate.admin(request);
   const shopDomain = session.shop;
+  const formData = await request.formData();
+  const themeId = formData.get("themeId") as string | null;
 
   // Ensure merchant record exists
   const merchant = await prisma.merchant.upsert({
@@ -33,11 +45,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     update: {},
   });
 
-  // Get active theme
-  const theme = await getActiveTheme(admin);
+  // Resolve theme: use selected or fall back to active
+  let theme;
+  const themes = await getThemes(admin);
+  if (themeId) {
+    theme = themes.find((t) => t.id === themeId) ?? null;
+  } else {
+    theme = themes.find((t) => t.role === "MAIN") ?? null;
+  }
+
   if (!theme) {
     return json(
-      { error: "No active theme found. Please publish a theme first." },
+      { error: "Theme not found. Please select a theme or publish one first." },
       { status: 400 }
     );
   }
@@ -46,12 +65,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const files = await fetchThemeFiles(admin, theme.id);
   if (files.length === 0) {
     return json(
-      { error: "No scannable files found in the active theme." },
+      { error: `No scannable files found in "${theme.name}".` },
       { status: 400 }
     );
   }
 
-  console.log(`[scan] Fetched ${files.length} theme files:`, files.map(f => f.filename));
+  console.log(`[scan] Scanning "${theme.name}" — ${files.length} files:`, files.map(f => f.filename));
 
   // Apply free plan file limit
   const filesToScan = merchant.plan === "free" ? files.slice(0, 5) : files;
@@ -62,6 +81,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       merchantId: merchant.id,
       status: "running",
       templateCount: filesToScan.length,
+      themeName: theme.name,
     },
   });
 
@@ -100,10 +120,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return redirect("/app");
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  MAIN: "Published",
+  UNPUBLISHED: "Unpublished",
+  DEVELOPMENT: "Development",
+  DEMO: "Demo",
+};
+
 export default function ScanPage() {
+  const { themes } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isScanning = navigation.state === "submitting";
+
+  const activeTheme = themes.find((t) => t.role === "MAIN");
+  const [selectedTheme, setSelectedTheme] = useState(activeTheme?.id ?? themes[0]?.id ?? "");
+
+  const themeOptions = themes.map((t) => ({
+    label: `${t.name} (${ROLE_LABELS[t.role] ?? t.role})`,
+    value: t.id,
+  }));
 
   return (
     <Page title="Run Accessibility Scan" backAction={{ url: "/app" }}>
@@ -115,14 +151,9 @@ export default function ScanPage() {
                 Scan Your Theme
               </Text>
               <Text as="p" variant="bodyMd">
-                We will fetch your active theme files and analyze them for WCAG
+                We will fetch your theme files and analyze them for WCAG
                 2.2 accessibility issues. This performs source-code analysis --
                 no JavaScript is injected into your storefront.
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Checks include: missing alt text, heading hierarchy, color
-                contrast, form labels, link purpose, focus indicators, target
-                size, page language, and ARIA validation.
               </Text>
 
               {actionData && "error" in actionData && (
@@ -139,14 +170,23 @@ export default function ScanPage() {
               )}
 
               <Form method="post">
-                <Button
-                  variant="primary"
-                  submit
-                  loading={isScanning}
-                  disabled={isScanning}
-                >
-                  {isScanning ? "Scanning..." : "Start Scan"}
-                </Button>
+                <BlockStack gap="400">
+                  <Select
+                    label="Theme"
+                    options={themeOptions}
+                    value={selectedTheme}
+                    onChange={setSelectedTheme}
+                  />
+                  <input type="hidden" name="themeId" value={selectedTheme} />
+                  <Button
+                    variant="primary"
+                    submit
+                    loading={isScanning}
+                    disabled={isScanning}
+                  >
+                    {isScanning ? "Scanning..." : "Start Scan"}
+                  </Button>
+                </BlockStack>
               </Form>
             </BlockStack>
           </Card>
