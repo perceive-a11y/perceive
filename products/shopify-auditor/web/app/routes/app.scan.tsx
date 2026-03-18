@@ -93,12 +93,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   }
 
-  // Mark scan as complete
+  // Generate a secure report token and mark scan as complete
+  const { randomBytes } = await import("node:crypto");
+  const reportToken = randomBytes(16).toString("hex");
+
   await prisma.scan.update({
     where: { id: scan.id },
     data: {
       status: "completed",
       completedAt: new Date(),
+      reportToken,
     },
   });
 

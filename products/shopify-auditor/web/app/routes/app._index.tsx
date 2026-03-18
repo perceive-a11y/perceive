@@ -17,10 +17,14 @@ import {
 
 import shopify from "~/lib/shopify.server";
 import prisma from "~/lib/db.server";
+import { SEVERITY_RANK, SEVERITY_TONE } from "~/lib/severity";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await shopify.authenticate.admin(request);
   const shopDomain = session.shop;
+
+  const url = new URL(request.url);
+  const billingStatus = url.searchParams.get("billing");
 
   // Get merchant and latest scan
   const merchant = await prisma.merchant.findUnique({
@@ -37,7 +41,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   });
 
   if (!merchant || merchant.scans.length === 0) {
-    return json({ hasScan: false, scan: null, summary: null });
+    return json({
+      hasScan: false,
+      scan: null,
+      summary: null,
+      criterionGroups: null,
+      reportToken: null,
+      billingStatus,
+    });
   }
 
   const scan = merchant.scans[0];
@@ -64,6 +75,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const existing = byCriterion.get(f.criterionId);
     if (existing) {
       existing.count++;
+      // Keep the most severe level for the group
+      if (
+        (SEVERITY_RANK[f.severity] ?? 4) <
+        (SEVERITY_RANK[existing.severity] ?? 4)
+      ) {
+        existing.severity = f.severity;
+      }
     } else {
       byCriterion.set(f.criterionId, {
         criterionId: f.criterionId,
@@ -82,6 +100,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     summary,
     criterionGroups: Array.from(byCriterion.values()),
+    reportToken: scan.reportToken ?? null,
+    billingStatus,
   });
 };
 
@@ -89,10 +109,36 @@ export default function DashboardPage() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
+  const billingBanner = () => {
+    if (data.billingStatus === "success") {
+      return (
+        <Layout.Section>
+          <Banner title="Plan activated" tone="success" onDismiss={() => {}}>
+            <p>Your subscription is now active.</p>
+          </Banner>
+        </Layout.Section>
+      );
+    }
+    if (data.billingStatus === "declined") {
+      return (
+        <Layout.Section>
+          <Banner title="Subscription not activated" tone="warning" onDismiss={() => {}}>
+            <p>
+              The subscription was not approved. You can try again from the
+              billing page.
+            </p>
+          </Banner>
+        </Layout.Section>
+      );
+    }
+    return null;
+  };
+
   if (!data.hasScan) {
     return (
       <Page title="Accessibility Auditor">
         <Layout>
+          {billingBanner()}
           <Layout.Section>
             <EmptyState
               heading="No scans yet"
@@ -104,7 +150,7 @@ export default function DashboardPage() {
             >
               <p>
                 Scan your theme for WCAG 2.2 accessibility issues. We analyze
-                your source code directly — no overlay widgets, no JavaScript
+                your source code directly -- no overlay widgets, no JavaScript
                 injection.
               </p>
             </EmptyState>
@@ -114,25 +160,28 @@ export default function DashboardPage() {
     );
   }
 
-  const { summary, criterionGroups } = data;
-
-  const severityBadge = (severity: string) => {
-    const toneMap: Record<string, "critical" | "warning" | "attention" | "info"> = {
-      critical: "critical",
-      serious: "warning",
-      moderate: "attention",
-      minor: "info",
-    };
-    return <Badge tone={toneMap[severity] ?? "info"}>{severity}</Badge>;
-  };
+  const { summary, criterionGroups, reportToken } = data;
 
   const rows = (criterionGroups ?? []).map(
     (g: { criterionId: string; count: number; severity: string }) => [
       g.criterionId,
       g.count.toString(),
-      g.severity,
-    ]
+      <Badge key={g.criterionId} tone={SEVERITY_TONE[g.severity] ?? "info"}>
+        {g.severity}
+      </Badge>,
+      <Button
+        key={`btn-${g.criterionId}`}
+        variant="plain"
+        onClick={() => navigate(`/app/findings/${g.criterionId}`)}
+      >
+        View
+      </Button>,
+    ],
   );
+
+  const reportUrl = reportToken
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/public/report/${reportToken}`
+    : null;
 
   return (
     <Page
@@ -143,6 +192,8 @@ export default function DashboardPage() {
       }}
     >
       <Layout>
+        {billingBanner()}
+
         {summary && summary.critical > 0 && (
           <Layout.Section>
             <Banner title="Critical issues found" tone="critical">
@@ -209,13 +260,46 @@ export default function DashboardPage() {
                 Findings by WCAG Criterion
               </Text>
               <DataTable
-                columnContentTypes={["text", "numeric", "text"]}
-                headings={["Criterion", "Count", "Severity"]}
+                columnContentTypes={["text", "numeric", "text", "text"]}
+                headings={["Criterion", "Count", "Severity", ""]}
                 rows={rows}
               />
             </BlockStack>
           </Card>
         </Layout.Section>
+
+        {reportUrl && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">
+                  Share Report
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Share a public HTML report of this scan. Anyone with the link
+                  can view it, but the URL contains a 128-bit random token that
+                  is not guessable.
+                </Text>
+                <InlineStack gap="300">
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(reportUrl);
+                    }}
+                  >
+                    Copy Report Link
+                  </Button>
+                  <Button
+                    url={reportUrl}
+                    target="_blank"
+                    variant="plain"
+                  >
+                    Open Report
+                  </Button>
+                </InlineStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
 
         <Layout.Section>
           <Card>

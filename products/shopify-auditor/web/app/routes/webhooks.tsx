@@ -6,7 +6,7 @@ import prisma from "~/lib/db.server";
  * Handle Shopify webhooks: app/uninstalled and mandatory compliance webhooks.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { topic, shop } = await authenticate.webhook(request);
+  const { topic, shop, payload } = await authenticate.webhook(request);
 
   switch (topic) {
     case "APP_UNINSTALLED":
@@ -30,6 +30,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         where: { shopDomain: shop },
       });
       break;
+
+    case "APP_SUBSCRIPTIONS_UPDATE": {
+      // Downgrade merchant to free when subscription is cancelled or expired
+      const body = payload as Record<string, unknown>;
+      const subscription = body?.app_subscription as Record<string, unknown> | undefined;
+      const status = subscription?.status;
+      if (status === "cancelled" || status === "expired") {
+        await prisma.merchant.updateMany({
+          where: { shopDomain: shop },
+          data: { plan: "free" },
+        });
+      }
+      break;
+    }
 
     default:
       throw new Response("Unhandled webhook topic", { status: 404 });

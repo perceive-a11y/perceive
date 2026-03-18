@@ -10,8 +10,9 @@ import shopify from "~/lib/shopify.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await shopify.authenticate.admin(request);
+export const loader = async (_args: LoaderFunctionArgs) => {
+  // Auth is handled by each child route loader — calling it here too causes a
+  // parallel token-exchange race that corrupts the session (empty scope/state).
   return json({ apiKey: process.env.SHOPIFY_API_KEY || "" });
 };
 

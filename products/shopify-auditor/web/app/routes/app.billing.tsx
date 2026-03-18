@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
+import { Form, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
+import { useEffect } from "react";
 import {
   Page,
   Layout,
@@ -12,6 +13,7 @@ import {
   Badge,
   Divider,
   List,
+  Banner,
 } from "@shopify/polaris";
 
 import shopify from "~/lib/shopify.server";
@@ -71,7 +73,40 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const plan = PLANS.find((p) => p.name === selectedPlan);
   if (!plan || plan.name === "free") {
-    // Downgrade to free — cancel any existing subscription
+    // Downgrade to free — cancel any active subscription first
+    const subsResponse = await admin.graphql(
+      `#graphql
+      query activeSubscriptions {
+        currentAppInstallation {
+          activeSubscriptions {
+            id
+            status
+          }
+        }
+      }`,
+    );
+
+    const subsData = await subsResponse.json();
+    const activeSubs =
+      subsData.data?.currentAppInstallation?.activeSubscriptions ?? [];
+
+    for (const sub of activeSubs) {
+      if (sub.status === "ACTIVE") {
+        await admin.graphql(
+          `#graphql
+          mutation cancelSubscription($id: ID!) {
+            appSubscriptionCancel(id: $id) {
+              userErrors {
+                field
+                message
+              }
+            }
+          }`,
+          { variables: { id: sub.id } },
+        );
+      }
+    }
+
     await prisma.merchant.upsert({
       where: { shopDomain },
       create: { shopDomain, plan: "free" },
@@ -80,7 +115,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return redirect("/app");
   }
 
-  // Create a Shopify app subscription via GraphQL
+  // Create a Shopify app subscription via GraphQL and return the
+  // confirmationUrl to the client. The client performs a top-level redirect
+  // because Remix strips custom headers from thrown Responses, preventing
+  // the App Bridge 401-header mechanism from working.
   const response = await admin.graphql(
     `#graphql
     mutation createSubscription($name: String!, $amount: Decimal!, $returnUrl: URL!) {
@@ -110,28 +148,53 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       variables: {
         name: `Perceive A11y ${plan.label}`,
         amount: plan.price.toString(),
-        returnUrl: `${process.env.SHOPIFY_APP_URL}/app/billing/confirm?plan=${plan.name}`,
+        // Return URL must go through the Shopify admin so the app loads
+        // embedded with a valid session token. A direct tunnel URL would
+        // hit the app outside the iframe, causing an auth failure.
+        returnUrl: `https://admin.shopify.com/store/${shopDomain.replace(".myshopify.com", "")}/apps/${process.env.SHOPIFY_API_KEY}/app/billing/confirm?plan=${plan.name}`,
       },
     }
   );
 
   const data = await response.json();
-  const confirmationUrl =
-    data.data?.appSubscriptionCreate?.confirmationUrl;
-
-  if (confirmationUrl) {
-    return redirect(confirmationUrl);
+  const errors = data.data?.appSubscriptionCreate?.userErrors;
+  if (errors?.length) {
+    return json({ error: errors[0].message, confirmationUrl: null }, { status: 422 });
   }
 
-  return json({ error: "Failed to create subscription" }, { status: 500 });
+  const confirmationUrl = data.data?.appSubscriptionCreate?.confirmationUrl;
+  if (!confirmationUrl) {
+    return json({ error: "Failed to create subscription", confirmationUrl: null }, { status: 500 });
+  }
+
+  return json({ confirmationUrl, error: null });
 };
 
 export default function BillingPage() {
   const { currentPlan } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+
+  // When the action returns a confirmationUrl, redirect the top-level window
+  // to Shopify's billing approval page (can't use iframe navigation).
+  useEffect(() => {
+    if (actionData?.confirmationUrl) {
+      window.open(actionData.confirmationUrl, "_top");
+    }
+  }, [actionData?.confirmationUrl]);
 
   return (
     <Page title="Plans & Billing" backAction={{ url: "/app" }}>
       <Layout>
+        {actionData?.error && (
+          <Layout.Section>
+            <Banner title="Billing error" tone="critical">
+              <p>{actionData.error}</p>
+            </Banner>
+          </Layout.Section>
+        )}
+
         {PLANS.map((plan) => (
           <Layout.Section key={plan.name} variant="oneThird">
             <Card>
@@ -166,6 +229,7 @@ export default function BillingPage() {
                       variant={plan.name === "starter" ? "primary" : "secondary"}
                       submit
                       fullWidth
+                      loading={isSubmitting}
                     >
                       {plan.price === 0
                         ? "Downgrade"
