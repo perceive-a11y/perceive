@@ -108,6 +108,8 @@ pub fn default_severity(criterion: &Criterion) -> Severity {
 // Criterion catalog
 // ---------------------------------------------------------------------------
 
+// Sorted by lexicographic ID order (the test `criteria_ids_are_sorted` enforces this).
+// Note: "2.4.10" sorts before "2.4.2" because '1' < '2'.
 static STATIC_CRITERIA: &[Criterion] = &[
     Criterion {
         id: "1.1.1",
@@ -176,6 +178,16 @@ static STATIC_CRITERIA: &[Criterion] = &[
         static_checkable: true,
     },
     Criterion {
+        id: "2.4.10",
+        name: "Section Headings",
+        level: ConformanceLevel::AAA,
+        principle: Principle::Operable,
+        description: "Section headings are used to organize content.",
+        how_to_fix: "Add headings (`<h2>`-`<h6>`) to organize page sections. \
+                     Each major content area should have a descriptive heading.",
+        static_checkable: true,
+    },
+    Criterion {
         id: "2.4.2",
         name: "Page Titled",
         level: ConformanceLevel::A,
@@ -197,6 +209,16 @@ static STATIC_CRITERIA: &[Criterion] = &[
         static_checkable: true,
     },
     Criterion {
+        id: "2.4.6",
+        name: "Headings and Labels",
+        level: ConformanceLevel::AA,
+        principle: Principle::Operable,
+        description: "Headings and labels describe topic or purpose.",
+        how_to_fix: "Use descriptive, non-generic text for headings and labels \
+                     that clearly conveys the content or function.",
+        static_checkable: true,
+    },
+    Criterion {
         id: "2.4.7",
         name: "Focus Visible",
         level: ConformanceLevel::AA,
@@ -205,6 +227,28 @@ static STATIC_CRITERIA: &[Criterion] = &[
                       where the keyboard focus indicator is visible.",
         how_to_fix: "Do not remove the default focus outline (`outline: none`) without \
                      providing an alternative visible focus style.",
+        static_checkable: true,
+    },
+    Criterion {
+        id: "2.5.3",
+        name: "Label in Name",
+        level: ConformanceLevel::A,
+        principle: Principle::Operable,
+        description: "For UI components with visible text labels, the accessible \
+                      name contains the visible label text.",
+        how_to_fix: "Ensure `aria-label` includes the visible text of the element. \
+                     If a button shows 'Search', its `aria-label` must contain 'Search'.",
+        static_checkable: true,
+    },
+    Criterion {
+        id: "2.5.5",
+        name: "Target Size (Enhanced)",
+        level: ConformanceLevel::AAA,
+        principle: Principle::Operable,
+        description: "Pointer input targets are at least 44x44 CSS pixels, with \
+                      exceptions for inline links and user-agent defaults.",
+        how_to_fix: "Increase interactive element size to at least 44x44 CSS pixels \
+                     via width/height or padding for enhanced touch accessibility.",
         static_checkable: true,
     },
     Criterion {
@@ -239,18 +283,7 @@ static STATIC_CRITERIA: &[Criterion] = &[
                      elements associated via `for`/`id` attributes.",
         static_checkable: true,
     },
-    Criterion {
-        id: "4.1.1",
-        name: "Parsing",
-        level: ConformanceLevel::A,
-        principle: Principle::Robust,
-        description: "Elements have complete start and end tags, are nested \
-                      according to their specifications, do not contain duplicate \
-                      attributes, and IDs are unique.",
-        how_to_fix: "Fix HTML validation errors: close all tags properly, remove \
-                     duplicate attributes, and ensure all `id` values are unique.",
-        static_checkable: true,
-    },
+    // SC 4.1.1 Parsing was removed from WCAG 2.2 as obsolete.
     Criterion {
         id: "4.1.2",
         name: "Name, Role, Value",

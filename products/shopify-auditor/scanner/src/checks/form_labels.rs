@@ -1,4 +1,5 @@
-//! SC 1.3.1 / 4.1.2 — form inputs without associated labels.
+//! SC 1.3.1 Info and Relationships / SC 3.3.2 Labels or Instructions —
+//! form inputs without associated labels.
 
 use crate::findings::Finding;
 use crate::html::HtmlElement;
@@ -61,26 +62,43 @@ pub fn check(
                 && !has_label_for
                 && !has_placeholder
         })
-        .map(|e| {
+        .flat_map(|e| {
             let input_type = e.attr("type").unwrap_or("text");
             let id_info = e
                 .attr("id")
                 .map_or(String::new(), |id| format!(" (id=\"{id}\")"));
-            Finding {
-                criterion_id: "1.3.1".to_owned(),
-                severity: Severity::Serious,
-                element: format!("{}[type=\"{input_type}\"]{id_info}", e.tag),
-                file_path: file_path.to_owned(),
-                line: line_fn(e.byte_offset),
-                message: format!(
-                    "Form <{0}> element has no associated label. Screen readers \
-                     cannot identify this {0}.",
-                    e.tag
-                ),
-                suggestion: "Add a <label for=\"id\"> element, or add an \
+            let element = format!("{}[type=\"{input_type}\"]{id_info}", e.tag);
+            let line = line_fn(e.byte_offset);
+            let message = format!(
+                "Form <{0}> element has no associated label. Screen readers \
+                 cannot identify this {0}.",
+                e.tag
+            );
+            let suggestion = "Add a <label for=\"id\"> element, or add an \
                              aria-label attribute."
-                    .to_owned(),
-            }
+                .to_owned();
+            // Emit under both SC 1.3.1 (programmatic structure) and
+            // SC 3.3.2 (visible labels for user input).
+            [
+                Finding {
+                    criterion_id: "1.3.1".to_owned(),
+                    severity: Severity::Serious,
+                    element: element.clone(),
+                    file_path: file_path.to_owned(),
+                    line,
+                    message: message.clone(),
+                    suggestion: suggestion.clone(),
+                },
+                Finding {
+                    criterion_id: "3.3.2".to_owned(),
+                    severity: Severity::Serious,
+                    element,
+                    file_path: file_path.to_owned(),
+                    line,
+                    message,
+                    suggestion,
+                },
+            ]
         })
         .collect()
 }
@@ -106,7 +124,10 @@ mod tests {
     fn flags_unlabeled_input() {
         let elements = vec![elem("input", &[("type", "text"), ("id", "name")])];
         let findings = check(&elements, "test.liquid", &|_| 1);
-        assert_eq!(findings.len(), 1);
+        // Emits under both SC 1.3.1 and SC 3.3.2
+        assert_eq!(findings.len(), 2);
+        assert!(findings.iter().any(|f| f.criterion_id == "1.3.1"));
+        assert!(findings.iter().any(|f| f.criterion_id == "3.3.2"));
     }
 
     #[test]

@@ -1,11 +1,13 @@
-//! SC 2.5.8 Target Size (Minimum) — small interactive element detection.
+//! SC 2.5.8 Target Size (Minimum) and SC 2.5.5 Target Size (Enhanced).
 
 use crate::css::SelectorProperties;
 use crate::findings::Finding;
 use a11y_rules::Severity;
 
-/// WCAG 2.2 minimum target size in CSS pixels.
+/// WCAG 2.2 AA minimum target size in CSS pixels.
 const MIN_TARGET_PX: f32 = 24.0;
+/// WCAG 2.2 AAA enhanced target size in CSS pixels.
+const ENHANCED_TARGET_PX: f32 = 44.0;
 
 /// Check CSS for interactive elements with explicitly small dimensions.
 ///
@@ -38,26 +40,53 @@ pub fn check(css_props: &[SelectorProperties], file_path: &str) -> Vec<Finding> 
 
             width_too_small || height_too_small
         })
-        .map(|p| {
+        .flat_map(|p| {
             let w = p.width_px.unwrap_or(0.0);
             let h = p.height_px.unwrap_or(0.0);
-            Finding {
-                criterion_id: "2.5.8".to_owned(),
-                severity: Severity::Moderate,
-                element: p.selector.clone(),
-                file_path: file_path.to_owned(),
-                line: 0,
-                message: format!(
-                    "Interactive element `{sel}` has target size {w:.0}x{h:.0}px, \
-                     below the 24x24px minimum.",
-                    sel = p.selector
-                ),
-                suggestion: format!(
-                    "Increase the element's clickable area to at least \
-                     {MIN_TARGET_PX}x{MIN_TARGET_PX}px using width, height, \
-                     padding, or min-width/min-height."
-                ),
+            let effective_w = p.min_width_px.unwrap_or(0.0).max(w);
+            let effective_h = p.min_height_px.unwrap_or(0.0).max(h);
+            let mut findings = Vec::with_capacity(2);
+
+            // SC 2.5.8 — AA minimum (24px)
+            if effective_w < MIN_TARGET_PX || effective_h < MIN_TARGET_PX {
+                findings.push(Finding {
+                    criterion_id: "2.5.8".to_owned(),
+                    severity: Severity::Moderate,
+                    element: p.selector.clone(),
+                    file_path: file_path.to_owned(),
+                    line: 0,
+                    message: format!(
+                        "Interactive element `{sel}` has target size {w:.0}x{h:.0}px, \
+                         below the 24x24px minimum.",
+                        sel = p.selector
+                    ),
+                    suggestion: format!(
+                        "Increase the element's clickable area to at least \
+                         {MIN_TARGET_PX}x{MIN_TARGET_PX}px using width, height, \
+                         padding, or min-width/min-height."
+                    ),
+                });
+            } else if effective_w < ENHANCED_TARGET_PX || effective_h < ENHANCED_TARGET_PX {
+                // SC 2.5.5 — AAA enhanced (44px)
+                findings.push(Finding {
+                    criterion_id: "2.5.5".to_owned(),
+                    severity: Severity::Minor,
+                    element: p.selector.clone(),
+                    file_path: file_path.to_owned(),
+                    line: 0,
+                    message: format!(
+                        "Interactive element `{sel}` has target size {w:.0}x{h:.0}px. \
+                         Meets AA minimum (24px) but not AAA enhanced (44px).",
+                        sel = p.selector
+                    ),
+                    suggestion: format!(
+                        "For enhanced touch accessibility (AAA), increase the \
+                         element to at least {ENHANCED_TARGET_PX}x{ENHANCED_TARGET_PX}px."
+                    ),
+                });
             }
+
+            findings
         })
         .collect()
 }
