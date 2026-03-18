@@ -53,6 +53,18 @@ ci: fmt lint test security doc wasm-test
 build:
     cargo build --workspace --all-features
 
+# Build the Shopify auditor napi-rs native module
+auditor-native:
+    cd products/shopify-auditor/native && npm run build
+
+# Set up the Shopify auditor web app
+auditor-setup:
+    cd products/shopify-auditor/web && npm install && npm run setup
+
+# Run the Shopify auditor dev server
+auditor-dev:
+    cd products/shopify-auditor/web && npm run dev
+
 # Build WASM and serve the demo locally at http://localhost:8765
 demo:
     wasm-pack build bindings/wasm --target web --out-dir pkg

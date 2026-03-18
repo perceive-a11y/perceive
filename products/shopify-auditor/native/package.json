@@ -1,0 +1,22 @@
+{
+  "name": "@perceive-a11y/shopify-auditor-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Native WCAG scanner bindings for the Shopify Accessibility Auditor",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "shopify-auditor",
+    "triples": {
+      "defaults": true,
+      "additional": []
+    }
+  },
+  "scripts": {
+    "build": "napi build --release",
+    "build:debug": "napi build"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}

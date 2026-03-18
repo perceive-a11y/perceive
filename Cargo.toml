@@ -3,6 +3,9 @@ resolver = "2"
 members = [
     "crates/perceive-color",
     "crates/perceive-cvd",
+    "crates/a11y-rules",
+    "products/shopify-auditor/scanner",
+    "products/shopify-auditor/native",
     "bindings/wasm",
 ]
 
@@ -16,6 +19,7 @@ rust-version = "1.85"
 [workspace.dependencies]
 perceive-color = { path = "crates/perceive-color", version = "0.1.0" }
 perceive-cvd = { path = "crates/perceive-cvd", version = "0.1.0" }
+a11y-rules = { path = "crates/a11y-rules", version = "0.1.0" }
 
 [workspace.lints.clippy]
 correctness = { level = "deny", priority = -1 }

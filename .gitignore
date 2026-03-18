@@ -23,4 +23,15 @@ Thumbs.db
 
 # Environment
 .env
-.env.*
+.env.local
+!.env.example
+
+# Node
+node_modules/
+
+# Shopify auditor
+products/shopify-auditor/native/*.node
+products/shopify-auditor/native/index.d.ts
+products/shopify-auditor/web/dev.db
+products/shopify-auditor/web/dev.db-journal
+products/shopify-auditor/web/build/

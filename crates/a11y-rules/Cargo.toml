@@ -1,0 +1,17 @@
+[package]
+name = "a11y-rules"
+description = "WCAG 2.2 criteria catalog — criterion metadata, severity, conformance levels, and fix hints"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1"
+
+[lints]
+workspace = true
