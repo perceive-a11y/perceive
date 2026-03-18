@@ -9,18 +9,29 @@ use a11y_rules::Severity;
 
 /// Check that a layout template contains a non-empty `<title>` element.
 ///
+/// Skips files that contain Shopify's `content_for_header` system tag,
+/// which always injects a `<title>` at runtime.
+///
 /// # Arguments
 ///
 /// * `elements` - Extracted HTML elements from a single file
 /// * `file_path` - Theme file path for source location
 /// * `line_fn` - Closure to convert byte offset to line number
+/// * `raw_source` - Original file source (before Liquid stripping)
 pub fn check(
     elements: &[HtmlElement],
     file_path: &str,
     line_fn: &dyn Fn(usize) -> usize,
+    raw_source: &str,
 ) -> Vec<Finding> {
-    // Only check layout files — snippets and sections don't have <head>/<title>
+    // Only check layout files
     if !file_path.starts_with("layout/") {
+        return Vec::new();
+    }
+
+    // Shopify's {{ content_for_header }} always injects a <title> at runtime.
+    // Skip the check if this system tag is present.
+    if raw_source.contains("content_for_header") {
         return Vec::new();
     }
 
@@ -105,7 +116,7 @@ mod tests {
     #[test]
     fn flags_missing_title_in_layout() {
         let elements = vec![html_el()];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1);
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<html></html>");
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].criterion_id, "2.4.2");
     }
@@ -113,38 +124,45 @@ mod tests {
     #[test]
     fn flags_empty_title() {
         let elements = vec![html_el(), title_el("")];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1);
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<html><title></title></html>");
         assert_eq!(findings.len(), 1);
         assert!(findings[0].message.contains("empty"));
     }
 
     #[test]
     fn allows_liquid_stripped_title() {
-        // After Liquid stripping, {{ page_title }} becomes whitespace —
-        // this is expected and should NOT be flagged.
         let elements = vec![html_el(), title_el("                    ")];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1);
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<title>{{ page_title }}</title>");
         assert!(findings.is_empty());
     }
 
     #[test]
     fn allows_valid_title() {
         let elements = vec![html_el(), title_el("My Store - Products")];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1);
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<title>My Store</title>");
+        assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn skips_content_for_header() {
+        // Shopify's {{ content_for_header }} always injects a <title>
+        let elements = vec![html_el()]; // No title element found
+        let source = "<html><head>{{ content_for_header }}</head></html>";
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1, source);
         assert!(findings.is_empty());
     }
 
     #[test]
     fn skips_non_layout_files() {
-        let elements = vec![html_el()]; // No title, but not a layout
-        let findings = check(&elements, "sections/header.liquid", &|_| 1);
+        let elements = vec![html_el()];
+        let findings = check(&elements, "sections/header.liquid", &|_| 1, "");
         assert!(findings.is_empty());
     }
 
     #[test]
     fn skips_partial_without_html() {
-        let elements: Vec<HtmlElement> = vec![]; // No <html> tag
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1);
+        let elements: Vec<HtmlElement> = vec![];
+        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "");
         assert!(findings.is_empty());
     }
 }
