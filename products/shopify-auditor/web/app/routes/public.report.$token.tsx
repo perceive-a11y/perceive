@@ -9,6 +9,8 @@ import prisma from "~/lib/db.server";
  *
  * Severity indicators use both color AND shape icons so they remain
  * distinguishable for colorblind users.
+ *
+ * For deep scans: includes score display, source badges, and source filter.
  */
 export const loader = async ({ params }: LoaderFunctionArgs) => {
   const token = params.token;
@@ -36,6 +38,8 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     line: f.line,
     message: f.message,
     suggestion: f.suggestion,
+    source: f.source,
+    pageUrl: f.pageUrl,
   }));
 
   const counts = {
@@ -59,6 +63,8 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   const shopDomain = scan.merchant.shopDomain;
   const completedAt = scan.completedAt?.toISOString() ?? "N/A";
   const filesScanned = scan.templateCount;
+  const isDeep = scan.scanType === "deep";
+  const score = scan.score;
 
   // Shape-coded severity icons (distinguishable without color)
   const severityIcon: Record<string, string> = {
@@ -68,17 +74,41 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     minor: "&#9644;",     // horizontal rectangle
   };
 
+  // Source badge HTML helper — plain language for non-technical readers
+  const sourceLabel = (source: string): string => {
+    switch (source) {
+      case "axe": return "Browser";
+      case "lighthouse": return "Lighthouse";
+      default: return "Source code";
+    }
+  };
+
+  const sourceBadgeClass = (source: string): string => {
+    switch (source) {
+      case "axe": return "source-badge runtime";
+      case "lighthouse": return "source-badge lighthouse";
+      default: return "source-badge static";
+    }
+  };
+
   // Build grouped findings HTML
   let findingsHtml = "";
   for (const [criterion, items] of grouped) {
     findingsHtml += `<section class="criterion-group" data-criterion="${esc(criterion)}">`;
     findingsHtml += `<h3>WCAG ${esc(criterion)} <small>(${items.length} ${items.length === 1 ? "finding" : "findings"})</small></h3>`;
     for (const f of items) {
+      const locationHtml = f.source === "axe" && f.pageUrl
+        ? `<code>${esc(f.pageUrl)}</code>`
+        : `<code>${esc(f.filePath)}:${f.line}</code>`;
+
       findingsHtml += `
-        <div class="finding-card ${esc(f.severity)}" data-severity="${esc(f.severity)}">
+        <div class="finding-card ${esc(f.severity)}" data-severity="${esc(f.severity)}" data-source="${esc(f.source)}">
           <div class="finding-header">
-            <code>${esc(f.filePath)}:${f.line}</code>
-            <span class="severity-badge ${esc(f.severity)}">${severityIcon[f.severity] ?? ""} ${esc(f.severity)}</span>
+            ${locationHtml}
+            <span class="finding-badges">
+              ${isDeep ? `<span class="${sourceBadgeClass(f.source)}">${sourceLabel(f.source)}</span>` : ""}
+              <span class="severity-badge ${esc(f.severity)}">${severityIcon[f.severity] ?? ""} ${esc(f.severity)}</span>
+            </span>
           </div>
           <p class="finding-element">Element: <code>${esc(f.element)}</code></p>
           <p>${esc(f.message)}</p>
@@ -87,6 +117,31 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     }
     findingsHtml += `</section>`;
   }
+
+  // Score card HTML (deep scans only)
+  const scoreHtml = isDeep && score !== null ? `
+    <div class="score-card">
+      <div class="score-value">${score}</div>
+      <div class="score-label">/ 100 Accessibility Score</div>
+    </div>
+  ` : "";
+
+  // Source filter (deep scans only)
+  const sourceFilterHtml = isDeep ? `
+    <label>
+      Detected by
+      <select id="source-filter" onchange="filterFindings()">
+        <option value="all">All</option>
+        <option value="static">Source code analysis</option>
+        <option value="axe">Browser testing</option>
+      </select>
+    </label>
+  ` : "";
+
+  // Scan type description
+  const scanTypeDesc = isDeep
+    ? "Combines source-code analysis and runtime browser testing"
+    : "WCAG 2.2 static analysis";
 
   const html = `<!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -109,6 +164,23 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     code, pre { font-family: 'JetBrains Mono', monospace; }
     header { text-align: center; margin-bottom: 2rem; }
     header h1 { margin-bottom: 0.25rem; }
+    .score-card {
+      text-align: center;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      background: var(--pico-card-background-color);
+      border-radius: 0.75rem;
+    }
+    .score-value {
+      font-size: 4rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .score-label {
+      font-size: 1rem;
+      color: var(--pico-muted-color);
+      margin-top: 0.5rem;
+    }
     .stats-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -144,6 +216,11 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
       align-items: center;
       margin-bottom: 0.5rem;
     }
+    .finding-badges {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
     .severity-badge {
       font-weight: 600;
       font-size: 0.85rem;
@@ -154,6 +231,34 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     .severity-badge.serious { color: var(--color-serious); }
     .severity-badge.moderate { color: var(--color-moderate); }
     .severity-badge.minor { color: var(--color-minor); }
+    .source-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15em 0.5em;
+      border-radius: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .source-badge.static {
+      background: var(--pico-muted-border-color);
+      color: var(--pico-color);
+    }
+    .source-badge.runtime {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    [data-theme="dark"] .source-badge.runtime {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+    .source-badge.lighthouse {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    [data-theme="dark"] .source-badge.lighthouse {
+      background: #451a03;
+      color: #fbbf24;
+    }
     .finding-element { font-size: 0.9rem; color: var(--pico-muted-color); }
     .suggestion {
       background: var(--pico-card-sectionning-background-color, var(--pico-card-background-color));
@@ -171,6 +276,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
       gap: 1rem;
       margin-bottom: 1.5rem;
       align-items: end;
+      flex-wrap: wrap;
     }
     .filters label { margin-bottom: 0; }
     .filters select, .filters input { margin-bottom: 0; }
@@ -194,8 +300,10 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     <header>
       <h1>Accessibility Audit Report</h1>
       <p><strong>${esc(shopDomain)}</strong> -- scanned ${filesScanned} files on ${completedAt !== "N/A" ? new Date(completedAt).toLocaleDateString() : "N/A"}</p>
-      <p>Generated by <strong>Perceive A11y Auditor</strong> -- WCAG 2.2 static analysis</p>
+      <p>Generated by <strong>Perceive A11y Auditor</strong> -- ${scanTypeDesc}</p>
     </header>
+
+    ${scoreHtml}
 
     <div class="stats-row">
       <div class="stat-card critical">
@@ -231,6 +339,7 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
         Criterion
         <input type="text" id="criterion-filter" placeholder="e.g. 1.1.1" oninput="filterFindings()">
       </label>
+      ${sourceFilterHtml}
     </div>
 
     <div id="findings">
@@ -239,9 +348,10 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
 
     <footer>
       <small>
-        This report was generated by source-code analysis of Shopify theme
-        files. It covers static checks only and does not replace a full
-        manual accessibility audit.
+        ${isDeep
+          ? "This report combines source-code analysis with runtime browser testing for comprehensive WCAG coverage."
+          : "This report was generated by source-code analysis of Shopify theme files. It covers static checks only and does not replace a full manual accessibility audit."
+        }
       </small>
     </footer>
   </main>
@@ -257,6 +367,8 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     function filterFindings() {
       var severity = document.getElementById('severity-filter').value;
       var criterion = document.getElementById('criterion-filter').value.trim().toLowerCase();
+      var sourceEl = document.getElementById('source-filter');
+      var source = sourceEl ? sourceEl.value : 'all';
 
       var groups = document.querySelectorAll('.criterion-group');
       for (var i = 0; i < groups.length; i++) {
@@ -269,7 +381,10 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
         for (var j = 0; j < cards.length; j++) {
           var card = cards[j];
           var cardSeverity = card.getAttribute('data-severity');
-          var show = (severity === 'all' || cardSeverity === severity) && criterionMatch;
+          var cardSource = card.getAttribute('data-source');
+          var show = (severity === 'all' || cardSeverity === severity)
+            && criterionMatch
+            && (source === 'all' || cardSource === source);
           card.style.display = show ? '' : 'none';
           if (show) visibleCount++;
         }

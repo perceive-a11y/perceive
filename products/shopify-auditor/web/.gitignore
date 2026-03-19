@@ -4,4 +4,5 @@ build/
 .env
 dev.db
 dev.db-journal
+dev.db-wal
 *.node

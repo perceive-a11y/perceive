@@ -56,6 +56,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   return json({
     criterionId,
+    isDeep: latestScan.scanType === "deep",
     findings: findings.map((f) => ({
       id: f.id,
       severity: f.severity,
@@ -64,6 +65,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       line: f.line,
       message: f.message,
       suggestion: f.suggestion,
+      source: f.source,
+      pageUrl: f.pageUrl,
     })),
   });
 };
@@ -76,10 +79,24 @@ interface Finding {
   line: number;
   message: string;
   suggestion: string;
+  source: string;
+  pageUrl: string;
+}
+
+/** Display the appropriate source badge in plain language. */
+function SourceBadge({ source }: { source: string }) {
+  switch (source) {
+    case "axe":
+      return <Badge tone="info">Browser</Badge>;
+    case "lighthouse":
+      return <Badge tone="attention">Lighthouse</Badge>;
+    default:
+      return <Badge>Source code</Badge>;
+  }
 }
 
 export default function FindingsDetailPage() {
-  const { criterionId, findings } = useLoaderData<typeof loader>();
+  const { criterionId, findings, isDeep } = useLoaderData<typeof loader>();
 
   return (
     <Page
@@ -103,11 +120,18 @@ export default function FindingsDetailPage() {
                 <BlockStack gap="300">
                   <InlineStack align="space-between">
                     <Text as="span" variant="bodyMd" fontWeight="semibold">
-                      <code>{f.filePath}:{f.line}</code>
+                      {f.source === "axe" && f.pageUrl ? (
+                        <code>{f.pageUrl}</code>
+                      ) : (
+                        <code>{f.filePath}:{f.line}</code>
+                      )}
                     </Text>
-                    <Badge tone={SEVERITY_TONE[f.severity] ?? "info"}>
-                      {f.severity}
-                    </Badge>
+                    <InlineStack gap="200">
+                      {isDeep && <SourceBadge source={f.source} />}
+                      <Badge tone={SEVERITY_TONE[f.severity] ?? "info"}>
+                        {f.severity}
+                      </Badge>
+                    </InlineStack>
                   </InlineStack>
 
                   <Text as="p" variant="bodySm" tone="subdued">

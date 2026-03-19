@@ -28,12 +28,13 @@ model Session {
 }
 
 model Merchant {
-  id          Int      @id @default(autoincrement())
-  shopDomain  String   @unique
-  plan        String   @default("free")
-  installedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  scans       Scan[]
+  id            Int      @id @default(autoincrement())
+  shopDomain    String   @unique
+  plan          String   @default("free")
+  storePassword String?
+  installedAt   DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  scans         Scan[]
 }
 
 model Scan {
@@ -41,6 +42,8 @@ model Scan {
   merchantId    Int
   merchant      Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   status        String    @default("pending")
+  scanType      String    @default("static")
+  score         Int?
   themeName     String    @default("")
   templateCount Int       @default(0)
   reportToken   String?   @unique
@@ -60,4 +63,6 @@ model Finding {
   line        Int    @default(0)
   message     String
   suggestion  String
+  source      String @default("static")
+  pageUrl     String @default("")
 }

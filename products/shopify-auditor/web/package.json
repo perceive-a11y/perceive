@@ -19,7 +19,10 @@
     "@shopify/polaris": "^13.0.0",
     "@shopify/shopify-app-remix": "^4.2.0",
     "@shopify/shopify-app-session-storage-prisma": "^9.0.0",
+    "@axe-core/playwright": "^4.10.0",
+    "better-sqlite3": "^11.0.0",
     "isbot": "^5.0.0",
+    "playwright": "^1.49.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },

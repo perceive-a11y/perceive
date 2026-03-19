@@ -47,6 +47,8 @@ const PLANS = [
     price: 39,
     features: [
       "Everything in Starter",
+      "Deep Scan (static + runtime analysis)",
+      "Accessibility score (0-100)",
       "Continuous monitoring (coming soon)",
       "EAA statement generator (coming soon)",
       "Priority support",
