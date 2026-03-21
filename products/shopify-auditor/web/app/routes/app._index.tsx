@@ -19,11 +19,14 @@ import {
   SkeletonPage,
   SkeletonBodyText,
   SkeletonDisplayText,
+  Tooltip,
+  Icon,
 } from "@shopify/polaris";
+import { InfoIcon } from "@shopify/polaris-icons";
 
 import shopify from "~/lib/shopify.server";
 import prisma from "~/lib/db.server";
-import { SEVERITY_TONE, SEVERITY_RANK } from "~/lib/severity";
+import { SEVERITY_TONE, SEVERITY_RANK, SEVERITY_COLOR } from "~/lib/severity";
 import { WCAG_CRITERIA } from "~/lib/wcag-criteria";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -563,57 +566,47 @@ export default function DashboardPage() {
         <Layout.Section>
           <InlineStack gap="400" align="start" wrap={false}>
             {score !== null && score !== undefined && (
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h3" variant="headingMd">
-                    Score
-                  </Text>
-                  <Text as="p" variant="headingLg" fontWeight="bold">
-                    {score}/100
-                  </Text>
-                </BlockStack>
-              </Card>
+              <div style={{ flex: 1 }}>
+                <Card>
+                  <BlockStack gap="200">
+                    <InlineStack gap="100" align="start" blockAlign="center">
+                      <Text as="h3" variant="headingMd">
+                        Score
+                      </Text>
+                      <Tooltip content="Starts at 100, minus 15 per critical, 8 per serious, 3 per moderate, and 1 per minor issue.">
+                        <Icon source={InfoIcon} tone="subdued" />
+                      </Tooltip>
+                    </InlineStack>
+                    <Text as="p" variant="headingLg" fontWeight="bold">
+                      {score}/100
+                    </Text>
+                  </BlockStack>
+                </Card>
+              </div>
             )}
-            <Card>
-              <BlockStack gap="200">
-                <Text as="h3" variant="headingMd">
-                  Critical
-                </Text>
-                <Text as="p" variant="headingLg" fontWeight="bold">
-                  {summary?.critical ?? 0}
-                </Text>
-              </BlockStack>
-            </Card>
-            <Card>
-              <BlockStack gap="200">
-                <Text as="h3" variant="headingMd">
-                  Serious
-                </Text>
-                <Text as="p" variant="headingLg" fontWeight="bold">
-                  {summary?.serious ?? 0}
-                </Text>
-              </BlockStack>
-            </Card>
-            <Card>
-              <BlockStack gap="200">
-                <Text as="h3" variant="headingMd">
-                  Moderate
-                </Text>
-                <Text as="p" variant="headingLg" fontWeight="bold">
-                  {summary?.moderate ?? 0}
-                </Text>
-              </BlockStack>
-            </Card>
-            <Card>
-              <BlockStack gap="200">
-                <Text as="h3" variant="headingMd">
-                  Minor
-                </Text>
-                <Text as="p" variant="headingLg" fontWeight="bold">
-                  {summary?.minor ?? 0}
-                </Text>
-              </BlockStack>
-            </Card>
+            {(["critical", "serious", "moderate", "minor"] as const).map(
+              (severity) => (
+                <div
+                  key={severity}
+                  style={{
+                    flex: 1,
+                    borderTop: `3px solid ${SEVERITY_COLOR[severity]}`,
+                    borderRadius: "var(--p-border-radius-300)",
+                  }}
+                >
+                  <Card>
+                    <BlockStack gap="200">
+                      <Text as="h3" variant="headingMd">
+                        {severity.charAt(0).toUpperCase() + severity.slice(1)}
+                      </Text>
+                      <Text as="p" variant="headingLg" fontWeight="bold">
+                        {summary?.[severity] ?? 0}
+                      </Text>
+                    </BlockStack>
+                  </Card>
+                </div>
+              ),
+            )}
           </InlineStack>
         </Layout.Section>
 

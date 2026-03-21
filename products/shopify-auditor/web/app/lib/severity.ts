@@ -16,3 +16,11 @@ export const SEVERITY_TONE: Record<
   moderate: "attention",
   minor: "info",
 };
+
+/** Border colors matching each severity's Polaris Badge tone. */
+export const SEVERITY_COLOR: Record<string, string> = {
+  critical: "#d72c0d",
+  serious: "#b98900",
+  moderate: "#5c6ac4",
+  minor: "#637381",
+};
