@@ -79,4 +79,5 @@ ENV PORT="3000"
 EXPOSE 3000
 
 # At startup: push schema to the database, then launch the Remix server
-CMD npx prisma db push --skip-generate && node node_modules/@remix-run/serve/dist/cli.js build/server/index.js
+CMD DATABASE_URL="file:/data/prod.db" npx prisma db push --skip-generate \
+    && npx remix-serve build/server/index.js
