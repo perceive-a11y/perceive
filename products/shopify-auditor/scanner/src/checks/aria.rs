@@ -441,33 +441,32 @@ fn check_aria_attrs(
         }
 
         // Role-attribute coupling
-        if !role.is_empty() && VALID_ROLES.contains(&role) {
-            if let Some((_, allowed_roles)) = ROLE_ATTR_COUPLING
+        if !role.is_empty()
+            && VALID_ROLES.contains(&role)
+            && let Some((_, allowed_roles)) = ROLE_ATTR_COUPLING
                 .iter()
                 .find(|(name, _)| *name == attr_name)
-            {
-                if !allowed_roles.contains(&role) {
-                    findings.push(Finding {
-                        criterion_id: "4.1.2".to_owned(),
-                        severity: Severity::Serious,
-                        element: format!("<{} role=\"{role}\" {attr_name}>", elem.tag),
-                        file_path: file_path.to_owned(),
-                        line: line_fn(elem.byte_offset),
-                        message: format!(
-                            "Attribute `{attr_name}` is not valid for \
+            && !allowed_roles.contains(&role)
+        {
+            findings.push(Finding {
+                criterion_id: "4.1.2".to_owned(),
+                severity: Severity::Serious,
+                element: format!("<{} role=\"{role}\" {attr_name}>", elem.tag),
+                file_path: file_path.to_owned(),
+                line: line_fn(elem.byte_offset),
+                message: format!(
+                    "Attribute `{attr_name}` is not valid for \
                              role=\"{role}\" on <{tag}>. This attribute is \
                              only allowed on: {}.",
-                            allowed_roles.join(", "),
-                            tag = elem.tag,
-                        ),
-                        suggestion: format!(
-                            "Remove `{attr_name}` or change the role to one \
+                    allowed_roles.join(", "),
+                    tag = elem.tag,
+                ),
+                suggestion: format!(
+                    "Remove `{attr_name}` or change the role to one \
                              that supports it: {}.",
-                            allowed_roles.join(", "),
-                        ),
-                    });
-                }
-            }
+                    allowed_roles.join(", "),
+                ),
+            });
         }
     }
 }

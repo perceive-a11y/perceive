@@ -1,9 +1,9 @@
 //! Scan the Shopify Dawn theme and print findings.
 //!
-//! Usage: cargo run --example scan_dawn -p shopify-auditor-scanner
+//! Usage: cargo run --example `scan_dawn` -p shopify-auditor-scanner
 //!
 //! Expects Dawn to be cloned at /tmp/dawn:
-//!   git clone --depth 1 https://github.com/Shopify/dawn.git /tmp/dawn
+//!   git clone --depth 1 <https://github.com/Shopify/dawn.git> /tmp/dawn
 
 use shopify_auditor_scanner::pipeline::{ThemeFile, scan_theme};
 use std::collections::HashMap;
@@ -57,9 +57,7 @@ fn main() {
     let mut criteria: Vec<_> = by_criterion.into_iter().collect();
     criteria.sort_by_key(|(id, _)| *id);
     for (id, count) in &criteria {
-        let name = a11y_rules::criterion_by_id(id)
-            .map(|c| c.name)
-            .unwrap_or("Unknown");
+        let name = a11y_rules::criterion_by_id(id).map_or("Unknown", |c| c.name);
         println!("  SC {id:<6} {name:<30} {count}");
     }
 
@@ -91,16 +89,15 @@ fn collect_files(root: &Path, dir: &Path, files: &mut Vec<ThemeFile>) {
             if !name.starts_with('.') && name != "node_modules" {
                 collect_files(root, &path, files);
             }
-        } else if let Some(ext) = path.extension() {
-            if ext == "liquid" || ext == "css" {
-                if let Ok(content) = fs::read_to_string(&path) {
-                    let rel = path.strip_prefix(root).unwrap_or(&path);
-                    files.push(ThemeFile {
-                        path: rel.to_string_lossy().to_string(),
-                        content,
-                    });
-                }
-            }
+        } else if let Some(ext) = path.extension()
+            && (ext == "liquid" || ext == "css")
+            && let Ok(content) = fs::read_to_string(&path)
+        {
+            let rel = path.strip_prefix(root).unwrap_or(&path);
+            files.push(ThemeFile {
+                path: rel.to_string_lossy().to_string(),
+                content,
+            });
         }
     }
 }

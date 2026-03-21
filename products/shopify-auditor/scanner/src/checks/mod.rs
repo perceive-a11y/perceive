@@ -1,6 +1,6 @@
 //! WCAG check modules — one per accessibility criterion.
 //!
-//! Each check function takes a [`ScanContext`] and returns a `Vec<Finding>`.
+//! Each check function takes parsed elements and returns a `Vec<Finding>`.
 //! The [`pipeline`](crate::pipeline) module orchestrates running all checks.
 
 pub mod accessible_name;

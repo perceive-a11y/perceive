@@ -132,7 +132,7 @@ fn build_handlers<'h>(
             let attrs: Vec<(String, String)> = e
                 .attributes()
                 .iter()
-                .map(|a| (a.name().to_lowercase(), a.value().to_string()))
+                .map(|a| (a.name().to_lowercase(), a.value().clone()))
                 .collect();
             el_void.lock().expect("lock poisoned").push(HtmlElement {
                 tag,
@@ -159,7 +159,7 @@ fn build_handlers<'h>(
             let attrs: Vec<(String, String)> = e
                 .attributes()
                 .iter()
-                .map(|a| (a.name().to_lowercase(), a.value().to_string()))
+                .map(|a| (a.name().to_lowercase(), a.value().clone()))
                 .collect();
             let mut pend = p_text.lock().expect("lock poisoned");
             *pend = Some(PendingElement {
@@ -206,7 +206,7 @@ fn build_handlers<'h>(
             let attrs: Vec<(String, String)> = e
                 .attributes()
                 .iter()
-                .map(|a| (a.name().to_lowercase(), a.value().to_string()))
+                .map(|a| (a.name().to_lowercase(), a.value().clone()))
                 .collect();
             el_aria.lock().expect("lock poisoned").push(HtmlElement {
                 tag,

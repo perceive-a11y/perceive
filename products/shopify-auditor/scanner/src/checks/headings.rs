@@ -70,23 +70,22 @@ pub fn check(
     let is_partial = file_path.starts_with("sections/")
         || file_path.starts_with("snippets/")
         || file_path.starts_with("blocks/");
-    if !is_partial {
-        if let Some(&(elem, level)) = headings.first() {
-            if level != 1 {
-                findings.push(Finding {
-                    criterion_id: "1.3.1".to_owned(),
-                    severity: Severity::Moderate,
-                    element: format!("<{}>", elem.tag),
-                    file_path: file_path.to_owned(),
-                    line: line_fn(elem.byte_offset),
-                    message: format!(
-                        "First heading is <h{level}> instead of <h1>. \
+    if !is_partial
+        && let Some(&(elem, level)) = headings.first()
+        && level != 1
+    {
+        findings.push(Finding {
+            criterion_id: "1.3.1".to_owned(),
+            severity: Severity::Moderate,
+            element: format!("<{}>", elem.tag),
+            file_path: file_path.to_owned(),
+            line: line_fn(elem.byte_offset),
+            message: format!(
+                "First heading is <h{level}> instead of <h1>. \
                          The page should begin with an <h1> element."
-                    ),
-                    suggestion: "Make the first heading on the page an <h1>.".to_owned(),
-                });
-            }
-        }
+            ),
+            suggestion: "Make the first heading on the page an <h1>.".to_owned(),
+        });
     }
 
     findings

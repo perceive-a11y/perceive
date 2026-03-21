@@ -39,10 +39,10 @@ pub fn check(
         .filter(|e| matches!(e.tag.as_str(), "input" | "select" | "textarea"))
         .filter(|e| {
             // Skip exempt input types
-            if let Some(input_type) = e.attr("type") {
-                if exempt_types.contains(&input_type) {
-                    return false;
-                }
+            if let Some(input_type) = e.attr("type")
+                && exempt_types.contains(&input_type)
+            {
+                return false;
             }
             true
         })

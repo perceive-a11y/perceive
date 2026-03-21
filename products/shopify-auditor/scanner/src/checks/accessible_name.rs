@@ -143,10 +143,10 @@ enum NameStatus {
 /// Determine whether an element has an accessible name.
 fn accessible_name_status(elem: &HtmlElement) -> NameStatus {
     // 1. aria-label (non-empty, non-whitespace-only)
-    if let Some(label) = elem.attr("aria-label") {
-        if !label.trim().is_empty() {
-            return NameStatus::Present;
-        }
+    if let Some(label) = elem.attr("aria-label")
+        && !label.trim().is_empty()
+    {
+        return NameStatus::Present;
     }
 
     // 2. aria-labelledby (references another element — presence = intent)
@@ -155,10 +155,10 @@ fn accessible_name_status(elem: &HtmlElement) -> NameStatus {
     }
 
     // 3. title attribute (fallback accessible name)
-    if let Some(title) = elem.attr("title") {
-        if !title.trim().is_empty() {
-            return NameStatus::Present;
-        }
+    if let Some(title) = elem.attr("title")
+        && !title.trim().is_empty()
+    {
+        return NameStatus::Present;
     }
 
     // 4. Inner text content
@@ -172,12 +172,11 @@ fn accessible_name_status(elem: &HtmlElement) -> NameStatus {
     }
 
     // 5. Input elements with value attribute
-    if elem.tag == "input" {
-        if let Some(val) = elem.attr("value") {
-            if !val.trim().is_empty() {
-                return NameStatus::Present;
-            }
-        }
+    if elem.tag == "input"
+        && let Some(val) = elem.attr("value")
+        && !val.trim().is_empty()
+    {
+        return NameStatus::Present;
     }
 
     NameStatus::Missing

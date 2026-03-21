@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn strip_output_tags() {
-        let input = r#"<h1>{{ product.title }}</h1>"#;
+        let input = r"<h1>{{ product.title }}</h1>";
         let result = strip_liquid(input);
         assert_eq!(input.len(), result.len());
         assert!(result.starts_with("<h1>"));
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn strip_block_tags() {
-        let input = r#"{% if true %}<p>hi</p>{% endif %}"#;
+        let input = r"{% if true %}<p>hi</p>{% endif %}";
         let result = strip_liquid(input);
         assert!(result.contains("<p>hi</p>"));
         assert!(!result.contains('{'));
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn nested_braces_in_liquid() {
-        let input = r#"{{ product | json }}"#;
+        let input = r"{{ product | json }}";
         let result = strip_liquid(input);
         assert_eq!(result.trim(), "");
         assert_eq!(input.len(), result.len());

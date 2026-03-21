@@ -159,7 +159,7 @@ mod tests {
         let elements = vec![HtmlElement {
             tag: "p".to_owned(),
             attrs: vec![],
-            inner_text: "".to_owned(),
+            inner_text: String::new(),
             byte_offset: 0,
         }];
         let findings = check(&elements, "test.liquid", &|_| 1);
