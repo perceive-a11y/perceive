@@ -50,6 +50,9 @@ model Scan {
   startedAt     DateTime  @default(now())
   completedAt   DateTime?
   findings      Finding[]
+
+  @@index([merchantId, status])
+  @@index([merchantId, startedAt])
 }
 
 model Finding {
@@ -65,4 +68,8 @@ model Finding {
   suggestion  String
   source      String @default("static")
   pageUrl     String @default("")
+
+  @@index([scanId])
+  @@index([scanId, criterionId])
+  @@index([scanId, severity])
 }

@@ -9,11 +9,11 @@ import {
   BlockStack,
   Button,
   Banner,
-  ProgressBar,
   Select,
   TextField,
   InlineStack,
   Badge,
+  Spinner,
 } from "@shopify/polaris";
 import { useState } from "react";
 
@@ -119,8 +119,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     },
   });
 
-  // Run the Rust static scanner
-  const result = scanTheme(filesToScan);
+  // Run the Rust static scanner (offloaded to a worker thread)
+  const result = await scanTheme(filesToScan);
 
   // Store static findings
   if (result.findings.length > 0) {
@@ -228,10 +228,12 @@ export default function ScanPage() {
 
               {isScanning && (
                 <BlockStack gap="200">
-                  <Text as="p" variant="bodyMd">
-                    Scanning theme files...
-                  </Text>
-                  <ProgressBar progress={75} size="small" />
+                  <InlineStack gap="200" blockAlign="center">
+                    <Spinner size="small" />
+                    <Text as="p" variant="bodyMd">
+                      Scanning theme files...
+                    </Text>
+                  </InlineStack>
                 </BlockStack>
               )}
 

@@ -15,8 +15,7 @@ import {
 
 import shopify from "~/lib/shopify.server";
 import prisma from "~/lib/db.server";
-import { SEVERITY_TONE } from "~/lib/severity";
-import { buildScanSummary } from "~/lib/scan-summary.server";
+import { SEVERITY_TONE, SEVERITY_RANK } from "~/lib/severity";
 import { WCAG_CRITERIA } from "~/lib/wcag-criteria";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -30,8 +29,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   const scan = await prisma.scan.findUnique({
     where: { id: scanId },
-    include: {
-      findings: true,
+    select: {
+      id: true,
+      scanType: true,
+      themeName: true,
+      completedAt: true,
+      templateCount: true,
+      score: true,
+      reportToken: true,
       merchant: { select: { shopDomain: true } },
     },
   });
@@ -40,7 +45,65 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Scan not found", { status: 404 });
   }
 
-  const { summary, criterionGroups } = buildScanSummary(scan.findings);
+  // Use groupBy to compute summary + criterion groups without loading all rows
+  const [severityGroups, criterionSeverityGroups] = await Promise.all([
+    prisma.finding.groupBy({
+      by: ["severity"],
+      where: { scanId },
+      _count: { id: true },
+    }),
+    prisma.finding.groupBy({
+      by: ["criterionId", "severity", "source"],
+      where: { scanId },
+      _count: { id: true },
+    }),
+  ]);
+
+  const summary = { critical: 0, serious: 0, moderate: 0, minor: 0, total: 0 };
+  for (const row of severityGroups) {
+    const count = row._count.id;
+    summary.total += count;
+    if (row.severity === "critical") summary.critical += count;
+    else if (row.severity === "serious") summary.serious += count;
+    else if (row.severity === "moderate") summary.moderate += count;
+    else summary.minor += count;
+  }
+
+  const criterionMap = new Map<
+    string,
+    { criterionId: string; count: number; severity: string; sources: Set<string> }
+  >();
+  for (const row of criterionSeverityGroups) {
+    const existing = criterionMap.get(row.criterionId);
+    if (existing) {
+      existing.count += row._count.id;
+      existing.sources.add(row.source);
+      if (
+        (SEVERITY_RANK[row.severity] ?? 4) <
+        (SEVERITY_RANK[existing.severity] ?? 4)
+      ) {
+        existing.severity = row.severity;
+      }
+    } else {
+      criterionMap.set(row.criterionId, {
+        criterionId: row.criterionId,
+        count: row._count.id,
+        severity: row.severity,
+        sources: new Set([row.source]),
+      });
+    }
+  }
+  const criterionGroups = Array.from(criterionMap.values())
+    .sort(
+      (a, b) =>
+        (SEVERITY_RANK[a.severity] ?? 4) - (SEVERITY_RANK[b.severity] ?? 4),
+    )
+    .map((g) => ({
+      criterionId: g.criterionId,
+      count: g.count,
+      severity: g.severity,
+      sources: Array.from(g.sources),
+    }));
 
   return json({
     scan: {
@@ -134,7 +197,7 @@ export default function HistoryScanPage() {
     : "In progress";
 
   const reportUrl = scan.reportToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/public/report/${scan.reportToken}`
+    ? `/public/report/${scan.reportToken}`
     : null;
 
   return (
@@ -214,7 +277,8 @@ export default function HistoryScanPage() {
                 <InlineStack gap="300">
                   <Button
                     onClick={() => {
-                      navigator.clipboard.writeText(reportUrl);
+                      const fullUrl = `${window.location.origin}${reportUrl}`;
+                      navigator.clipboard.writeText(fullUrl);
                     }}
                   >
                     Copy Report Link

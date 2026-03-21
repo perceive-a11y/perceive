@@ -3,13 +3,18 @@
  *
  * The native module is built by napi-rs from products/shopify-auditor/native/
  * and exposes `scanTheme()` and `checkContrast()` functions.
+ *
+ * `scanTheme` is offloaded to a worker thread so the synchronous napi-rs call
+ * does not block the Node.js event loop during concurrent requests.
  */
 
 import { createRequire } from "module";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { Worker } from "node:worker_threads";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const nativePath = resolve(__dirname, "../../../native/shopify-auditor.node");
 
 let nativeModule: {
   scanTheme: (files: Array<{ filename: string; content: string }>) => ScanResult;
@@ -19,8 +24,6 @@ let nativeModule: {
 let usingRustEngine = false;
 
 try {
-  // Resolve the absolute path to the native module
-  const nativePath = resolve(__dirname, "../../../native/shopify-auditor.node");
   const require = createRequire(import.meta.url);
   nativeModule = require(nativePath);
   usingRustEngine = true;
@@ -70,10 +73,42 @@ export interface ThemeFile {
 
 /**
  * Scan theme files for WCAG accessibility issues using the Rust engine.
+ *
+ * Offloads to a worker thread when the native Rust engine is available so the
+ * synchronous napi-rs call does not block the Node.js event loop. Falls back
+ * to main-thread execution for the stub.
  */
-export function scanTheme(files: ThemeFile[]): ScanResult {
-  console.log(`[scanner] Scanning ${files.length} files (engine: ${usingRustEngine ? "rust" : "stub"})`);
-  const result = nativeModule.scanTheme(files);
+export async function scanTheme(files: ThemeFile[]): Promise<ScanResult> {
+  console.log(
+    `[scanner] Scanning ${files.length} files (engine: ${usingRustEngine ? "rust" : "stub"})`,
+  );
+
+  let result: ScanResult;
+
+  if (usingRustEngine) {
+    // Run the CPU-bound Rust scan in a worker thread to avoid blocking
+    // the event loop during concurrent requests.
+    result = await new Promise<ScanResult>((resolve, reject) => {
+      const workerCode = `
+        const { parentPort, workerData } = require("node:worker_threads");
+        const native = require(workerData.nativePath);
+        const result = native.scanTheme(workerData.files);
+        parentPort.postMessage(result);
+      `;
+      const worker = new Worker(workerCode, {
+        eval: true,
+        workerData: { nativePath, files },
+      });
+      worker.on("message", resolve);
+      worker.on("error", reject);
+      worker.on("exit", (code) => {
+        if (code !== 0) reject(new Error(`Scanner worker exited with code ${code}`));
+      });
+    });
+  } else {
+    result = nativeModule.scanTheme(files);
+  }
+
   console.log(`[scanner] Found ${result.findings.length} findings`);
   return result;
 }

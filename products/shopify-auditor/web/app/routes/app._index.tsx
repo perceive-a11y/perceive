@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useNavigate, useRevalidator } from "@remix-run/react";
-import { useEffect, useRef } from "react";
+import { useLoaderData, useNavigate, useRevalidator, useNavigation } from "@remix-run/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Page,
   Layout,
@@ -16,12 +16,14 @@ import {
   EmptyState,
   Spinner,
   CalloutCard,
+  SkeletonPage,
+  SkeletonBodyText,
+  SkeletonDisplayText,
 } from "@shopify/polaris";
 
 import shopify from "~/lib/shopify.server";
 import prisma from "~/lib/db.server";
-import { SEVERITY_TONE } from "~/lib/severity";
-import { buildScanSummary } from "~/lib/scan-summary.server";
+import { SEVERITY_TONE, SEVERITY_RANK } from "~/lib/severity";
 import { WCAG_CRITERIA } from "~/lib/wcag-criteria";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -31,19 +33,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const billingStatus = url.searchParams.get("billing");
 
-  // Get merchant and latest scan with findings
   const merchant = await prisma.merchant.findUnique({
     where: { shopDomain },
-    include: {
-      scans: {
-        orderBy: { startedAt: "desc" },
-        take: 1,
-        include: { findings: true },
-      },
-    },
   });
 
-  if (!merchant || merchant.scans.length === 0) {
+  if (!merchant) {
     return json({
       hasScan: false,
       scan: null,
@@ -53,50 +47,146 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       billingStatus,
       isDeepScanning: false,
       score: null,
-      plan: merchant?.plan ?? "free",
+      plan: "free",
       historyScans: [],
       trend: null,
     });
   }
 
-  const scan = merchant.scans[0];
-
-  const isDeepScanning =
-    scan.status === "deep-scan-pending" || scan.status === "deep-scan-running";
-
-  const { summary, criterionGroups } = buildScanSummary(scan.findings);
-
-  // Fetch recent scans for history (lightweight, no findings)
-  const recentScans = await prisma.scan.findMany({
-    where: { merchantId: merchant.id, status: "completed" },
+  // Fetch latest scan (lightweight — no findings)
+  const latestScan = await prisma.scan.findFirst({
+    where: { merchantId: merchant.id },
     orderBy: { startedAt: "desc" },
-    take: 11,
     select: {
       id: true,
+      status: true,
       scanType: true,
       themeName: true,
       score: true,
-      startedAt: true,
-      completedAt: true,
       templateCount: true,
-      _count: { select: { findings: true } },
+      reportToken: true,
+      completedAt: true,
     },
   });
 
+  if (!latestScan) {
+    return json({
+      hasScan: false,
+      scan: null,
+      summary: null,
+      criterionGroups: null,
+      reportToken: null,
+      billingStatus,
+      isDeepScanning: false,
+      score: null,
+      plan: merchant.plan,
+      historyScans: [],
+      trend: null,
+    });
+  }
+
+  const isDeepScanning =
+    latestScan.status === "deep-scan-pending" ||
+    latestScan.status === "deep-scan-running";
+
+  // Use groupBy to compute summary + criterion groups without loading all rows
+  const [severityGroups, criterionSeverityGroups, recentScans] =
+    await Promise.all([
+      prisma.finding.groupBy({
+        by: ["severity"],
+        where: { scanId: latestScan.id },
+        _count: { id: true },
+      }),
+      prisma.finding.groupBy({
+        by: ["criterionId", "severity", "source"],
+        where: { scanId: latestScan.id },
+        _count: { id: true },
+      }),
+      prisma.scan.findMany({
+        where: { merchantId: merchant.id, status: "completed" },
+        orderBy: { startedAt: "desc" },
+        take: 11,
+        select: {
+          id: true,
+          scanType: true,
+          themeName: true,
+          score: true,
+          startedAt: true,
+          completedAt: true,
+          templateCount: true,
+          _count: { select: { findings: true } },
+        },
+      }),
+    ]);
+
+  // Build severity summary from groupBy
+  const summary = { critical: 0, serious: 0, moderate: 0, minor: 0, total: 0 };
+  for (const row of severityGroups) {
+    const count = row._count.id;
+    summary.total += count;
+    if (row.severity === "critical") summary.critical += count;
+    else if (row.severity === "serious") summary.serious += count;
+    else if (row.severity === "moderate") summary.moderate += count;
+    else summary.minor += count;
+  }
+
+  // Build criterion groups from groupBy results
+  const criterionMap = new Map<
+    string,
+    { criterionId: string; count: number; severity: string; sources: Set<string> }
+  >();
+  for (const row of criterionSeverityGroups) {
+    const existing = criterionMap.get(row.criterionId);
+    if (existing) {
+      existing.count += row._count.id;
+      existing.sources.add(row.source);
+      if (
+        (SEVERITY_RANK[row.severity] ?? 4) <
+        (SEVERITY_RANK[existing.severity] ?? 4)
+      ) {
+        existing.severity = row.severity;
+      }
+    } else {
+      criterionMap.set(row.criterionId, {
+        criterionId: row.criterionId,
+        count: row._count.id,
+        severity: row.severity,
+        sources: new Set([row.source]),
+      });
+    }
+  }
+  const criterionGroups = Array.from(criterionMap.values())
+    .sort(
+      (a, b) =>
+        (SEVERITY_RANK[a.severity] ?? 4) - (SEVERITY_RANK[b.severity] ?? 4),
+    )
+    .map((g) => ({
+      criterionId: g.criterionId,
+      count: g.count,
+      severity: g.severity,
+      sources: Array.from(g.sources),
+    }));
+
   // Build per-scan severity counts for history + trend
   const scanIds = recentScans.map((s) => s.id);
-  const severityCounts = scanIds.length > 0
-    ? await prisma.finding.groupBy({
-        by: ["scanId", "severity"],
-        where: { scanId: { in: scanIds } },
-        _count: { id: true },
-      })
-    : [];
+  const severityCounts =
+    scanIds.length > 0
+      ? await prisma.finding.groupBy({
+          by: ["scanId", "severity"],
+          where: { scanId: { in: scanIds } },
+          _count: { id: true },
+        })
+      : [];
 
-  // Index severity counts by scanId
   const severityByScan = new Map<
     number,
-    { critical: number; serious: number; moderate: number; minor: number; total: number }
+    {
+      critical: number;
+      serious: number;
+      moderate: number;
+      minor: number;
+      total: number;
+    }
   >();
   for (const row of severityCounts) {
     let entry = severityByScan.get(row.scanId);
@@ -114,7 +204,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const historyScans = recentScans.map((s) => {
     const counts = severityByScan.get(s.id) ?? {
-      critical: 0, serious: 0, moderate: 0, minor: 0, total: 0,
+      critical: 0,
+      serious: 0,
+      moderate: 0,
+      minor: 0,
+      total: 0,
     };
     return {
       id: s.id,
@@ -131,18 +225,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   });
 
-  // Compute trend: compare latest vs previous completed scan of the same type.
-  // Comparing across scan types (e.g. Deep vs Static) is misleading because
-  // they run different checks and produce different finding counts.
-  let trend: {
-    totalDelta: number;
-    criticalDelta: number;
-  } | null = null;
+  // Compute trend: compare latest vs previous completed scan of the same type
+  let trend: { totalDelta: number; criticalDelta: number } | null = null;
   if (historyScans.length >= 2) {
     const latest = historyScans[0];
-    const previous = historyScans.slice(1).find(
-      (s) => s.scanType === latest.scanType,
-    );
+    const previous = historyScans
+      .slice(1)
+      .find((s) => s.scanType === latest.scanType);
     if (previous) {
       trend = {
         totalDelta: latest.total - previous.total,
@@ -154,23 +243,23 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return json({
     hasScan: true,
     scan: {
-      id: scan.id,
-      status: scan.status,
-      scanType: scan.scanType,
-      themeName: scan.themeName || "Active theme",
-      completedAt: scan.completedAt?.toISOString() ?? null,
+      id: latestScan.id,
+      status: latestScan.status,
+      scanType: latestScan.scanType,
+      themeName: latestScan.themeName || "Active theme",
+      completedAt: latestScan.completedAt?.toISOString() ?? null,
     },
     summary: {
       ...summary,
-      filesScanned: scan.templateCount,
-      completedAt: scan.completedAt?.toISOString() ?? null,
-      status: scan.status,
+      filesScanned: latestScan.templateCount,
+      completedAt: latestScan.completedAt?.toISOString() ?? null,
+      status: latestScan.status,
     },
     criterionGroups,
-    reportToken: scan.reportToken ?? null,
+    reportToken: latestScan.reportToken ?? null,
     billingStatus,
     isDeepScanning,
-    score: scan.score,
+    score: latestScan.score,
     plan: merchant.plan,
     historyScans,
     trend,
@@ -191,20 +280,66 @@ function sourceBadge(sources: string[]) {
   return <Badge>Source code only</Badge>;
 }
 
+/** Skeleton fallback shown during route transitions. */
+function DashboardSkeleton() {
+  return (
+    <SkeletonPage title="Accessibility Auditor" primaryAction>
+      <Layout>
+        <Layout.Section>
+          <InlineStack gap="400" align="start" wrap={false}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Card key={i}>
+                <BlockStack gap="200">
+                  <SkeletonDisplayText size="small" />
+                  <SkeletonBodyText lines={1} />
+                </BlockStack>
+              </Card>
+            ))}
+          </InlineStack>
+        </Layout.Section>
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="200">
+              <SkeletonDisplayText size="small" />
+              <SkeletonBodyText lines={5} />
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+      </Layout>
+    </SkeletonPage>
+  );
+}
+
 export default function DashboardPage() {
   const data = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const revalidator = useRevalidator();
+  const navigation = useNavigation();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [pollStatus, setPollStatus] = useState<string | null>(null);
 
-  // Poll every 3s while a deep scan is in progress
-  useEffect(() => {
-    if (data.isDeepScanning) {
-      intervalRef.current = setInterval(() => {
+  // Lightweight poll: hit the scan-status resource route instead of
+  // revalidating the entire dashboard. Only revalidate on completion.
+  const pollScanStatus = useCallback(async () => {
+    if (!data.scan?.id) return;
+    try {
+      const res = await fetch(`/app/scan-status?scanId=${data.scan.id}`);
+      if (!res.ok) return;
+      const { status } = await res.json();
+      setPollStatus(status);
+      if (status === "completed" || status === "failed") {
         if (revalidator.state === "idle") {
           revalidator.revalidate();
         }
-      }, 3000);
+      }
+    } catch {
+      // Silently ignore network errors during polling
+    }
+  }, [data.scan?.id, revalidator]);
+
+  useEffect(() => {
+    if (data.isDeepScanning) {
+      intervalRef.current = setInterval(pollScanStatus, 5000);
     }
 
     return () => {
@@ -213,7 +348,12 @@ export default function DashboardPage() {
         intervalRef.current = null;
       }
     };
-  }, [data.isDeepScanning, revalidator]);
+  }, [data.isDeepScanning, pollScanStatus]);
+
+  // Show skeleton during route transitions
+  if (navigation.state === "loading") {
+    return <DashboardSkeleton />;
+  }
 
   const billingBanner = () => {
     if (data.billingStatus === "success") {
@@ -308,9 +448,7 @@ export default function DashboardPage() {
     },
   );
 
-  const reportUrl = reportToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/public/report/${reportToken}`
-    : null;
+  const reportUrl = reportToken ? `/public/report/${reportToken}` : null;
 
   const tableHeadings = isDeep
     ? ["Criterion", "Count", "Severity", "Detected by"]
@@ -530,7 +668,8 @@ export default function DashboardPage() {
                 <InlineStack gap="300">
                   <Button
                     onClick={() => {
-                      navigator.clipboard.writeText(reportUrl);
+                      const fullUrl = `${window.location.origin}${reportUrl}`;
+                      navigator.clipboard.writeText(fullUrl);
                     }}
                   >
                     Copy Report Link

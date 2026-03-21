@@ -158,8 +158,8 @@ async function main() {
                     waitUntil: "domcontentloaded",
                     timeout: PAGE_TIMEOUT,
                 });
-                // Brief wait for JS-rendered content
-                await page.waitForTimeout(1000);
+                // Wait for network to settle instead of a fixed delay
+                await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
 
                 const results = await new AxeBuilder({ page })
                     .withTags(["wcag2a", "wcag2aa", "wcag2aaa", "best-practice"])

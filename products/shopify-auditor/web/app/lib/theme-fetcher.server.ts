@@ -106,25 +106,38 @@ export async function fetchThemeFiles(
     return [];
   }
 
-  // Fetch file contents in batches (API limit)
+  // Fetch file contents in batches (API limit: 50 filenames per query).
+  // Run up to 3 batches concurrently to respect Shopify rate limits.
   const batchSize = 50;
-  const results: ThemeFile[] = [];
+  const concurrency = 3;
+  const batches: string[][] = [];
 
   for (let i = 0; i < scannableFiles.length; i += batchSize) {
-    const batch = scannableFiles.slice(i, i + batchSize);
+    batches.push(scannableFiles.slice(i, i + batchSize));
+  }
+
+  const fetchBatch = async (batch: string[]): Promise<ThemeFile[]> => {
     const response = await admin.graphql(THEME_FILES_QUERY, {
       variables: { themeId, filenames: batch },
     });
     const data = await response.json();
     const files = data.data?.theme?.files?.nodes ?? [];
-
+    const out: ThemeFile[] = [];
     for (const file of files) {
       if (file.body?.content) {
-        results.push({
-          filename: file.filename,
-          content: file.body.content,
-        });
+        out.push({ filename: file.filename, content: file.body.content });
       }
+    }
+    return out;
+  };
+
+  // Process batches in groups of `concurrency` to bound parallel requests
+  const results: ThemeFile[] = [];
+  for (let i = 0; i < batches.length; i += concurrency) {
+    const group = batches.slice(i, i + concurrency);
+    const groupResults = await Promise.all(group.map(fetchBatch));
+    for (const batch of groupResults) {
+      results.push(...batch);
     }
   }
 
