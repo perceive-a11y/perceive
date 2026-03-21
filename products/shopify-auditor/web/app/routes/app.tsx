@@ -26,6 +26,7 @@ export default function App() {
           Dashboard
         </Link>
         <Link to="/app/scan">Run Scan</Link>
+        <Link to="/app/statement">Statement</Link>
         <Link to="/app/billing">Plans</Link>
       </NavMenu>
       <Outlet />

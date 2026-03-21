@@ -39,6 +39,7 @@ const PLANS = [
       "Detailed findings with file and line numbers",
       "Fix suggestions for every issue",
       "Shareable HTML report",
+      "Accessibility Statement generator",
     ],
   },
   {
@@ -132,7 +133,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           }
         }]
         returnUrl: $returnUrl
-        test: true
       ) {
         appSubscription {
           id

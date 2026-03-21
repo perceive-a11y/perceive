@@ -28,13 +28,16 @@ model Session {
 }
 
 model Merchant {
-  id            Int      @id @default(autoincrement())
-  shopDomain    String   @unique
-  plan          String   @default("free")
-  storePassword String?
-  installedAt   DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  scans         Scan[]
+  id                   Int       @id @default(autoincrement())
+  shopDomain           String    @unique
+  plan                 String    @default("free")
+  storePassword        String?
+  accessibilityEmail   String?
+  organizationName     String?
+  statementGeneratedAt DateTime?
+  installedAt          DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  scans                Scan[]
 }
 
 model Scan {

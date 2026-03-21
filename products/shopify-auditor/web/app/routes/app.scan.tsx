@@ -89,8 +89,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
-  console.log(`[scan] Scanning "${theme.name}" — ${files.length} files:`, files.map(f => f.filename));
-
   // All plans scan all files
   const filesToScan = files;
 
@@ -171,7 +169,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shopDomain,
       encryptedPassword,
     );
-    console.log(`[scan] Deep scan worker forked (PID: ${pid}) for scan ${scan.id}`);
   } else {
     // Static-only scan: mark complete immediately
     await prisma.scan.update({
@@ -219,7 +216,7 @@ export default function ScanPage() {
             <BlockStack gap="400">
               <Text as="p" variant="bodyMd">
                 Analyzes your theme for WCAG 2.2 accessibility issues across
-                14 success criteria. Nothing is injected into your storefront.
+                17 success criteria. Nothing is injected into your storefront.
               </Text>
 
               {actionData && "error" in actionData && (

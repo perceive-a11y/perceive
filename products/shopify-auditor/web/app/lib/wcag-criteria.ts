@@ -80,4 +80,9 @@ export const WCAG_CRITERIA: Record<string, { name: string; description: string }
     description:
       "Interactive elements need proper ARIA attributes so assistive technology can operate them",
   },
+  "2.4.10": {
+    name: "Section Headings",
+    description:
+      "Content is organized with headings so users can navigate and understand the structure",
+  },
 };
