@@ -25,9 +25,9 @@ const PLANS = [
     label: "Free",
     price: 0,
     features: [
-      "5 template files per scan",
-      "Basic findings report",
-      "WCAG 2.2 AA checks",
+      "Full theme scan (all files)",
+      "Issue counts and severity overview",
+      "WCAG 2.2 AA + AAA checks",
     ],
   },
   {
@@ -35,10 +35,10 @@ const PLANS = [
     label: "Starter",
     price: 19,
     features: [
-      "All theme files",
-      "Fix suggestions",
-      "HTML report export",
-      "WCAG 2.2 AA + AAA checks",
+      "Everything in Free",
+      "Detailed findings with file and line numbers",
+      "Fix suggestions for every issue",
+      "Shareable HTML report",
     ],
   },
   {
@@ -49,8 +49,6 @@ const PLANS = [
       "Everything in Starter",
       "Deep Scan (static + runtime analysis)",
       "Accessibility score (0-100)",
-      "Continuous monitoring (coming soon)",
-      "EAA statement generator (coming soon)",
       "Priority support",
     ],
   },

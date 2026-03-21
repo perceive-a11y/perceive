@@ -14,7 +14,6 @@ import {
   TextField,
   InlineStack,
   Badge,
-  Divider,
 } from "@shopify/polaris";
 import { useState } from "react";
 
@@ -92,8 +91,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`[scan] Scanning "${theme.name}" — ${files.length} files:`, files.map(f => f.filename));
 
-  // Apply free plan file limit
-  const filesToScan = merchant.plan === "free" ? files.slice(0, 5) : files;
+  // All plans scan all files
+  const filesToScan = files;
 
   const isDeep = intent === "deep-scan";
   const scanType = isDeep ? "deep" : "static";
@@ -140,9 +139,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   }
 
-  // Generate a secure report token
+  // Generate a secure report token (paid plans only)
   const { randomBytes } = await import("node:crypto");
-  const reportToken = randomBytes(16).toString("hex");
+  const reportToken = merchant.plan !== "free"
+    ? randomBytes(16).toString("hex")
+    : null;
 
   if (isDeep) {
     // Encrypt and store password if provided
@@ -213,16 +214,12 @@ export default function ScanPage() {
   return (
     <Page title="Run Accessibility Scan" backAction={{ url: "/app" }}>
       <Layout>
-        <Layout.Section>
+        <Layout.Section variant="oneHalf">
           <Card>
             <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Scan Your Theme
-              </Text>
               <Text as="p" variant="bodyMd">
-                We will fetch your theme files and analyze them for WCAG
-                2.2 accessibility issues. This performs source-code analysis --
-                no JavaScript is injected into your storefront.
+                Analyzes your theme for WCAG 2.2 accessibility issues across
+                14 success criteria. Nothing is injected into your storefront.
               </Text>
 
               {actionData && "error" in actionData && (
@@ -238,121 +235,112 @@ export default function ScanPage() {
                 </BlockStack>
               )}
 
+              <Select
+                label="Theme"
+                options={themeOptions}
+                value={selectedTheme}
+                onChange={setSelectedTheme}
+              />
+
+              {isPro && (
+                <TextField
+                  label="Store password"
+                  type="password"
+                  value={storePassword}
+                  onChange={setStorePassword}
+                  helpText={
+                    hasStoredPassword
+                      ? "Leave blank to use your saved password."
+                      : "Only needed if your store is password-protected."
+                  }
+                  autoComplete="off"
+                />
+              )}
+
               <Form method="post">
-                <BlockStack gap="400">
-                  <Select
-                    label="Theme"
-                    options={themeOptions}
-                    value={selectedTheme}
-                    onChange={setSelectedTheme}
-                  />
-                  <input type="hidden" name="themeId" value={selectedTheme} />
-                  <Button
-                    variant="primary"
-                    submit
-                    loading={isScanning}
-                    disabled={isScanning}
-                  >
-                    {isScanning ? "Scanning..." : "Start Scan"}
-                  </Button>
-                </BlockStack>
-              </Form>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <InlineStack align="space-between">
-                <Text as="h2" variant="headingMd">
-                  Deep Scan
-                </Text>
-                <Badge tone="info">Pro</Badge>
-              </InlineStack>
-
-              <Text as="p" variant="bodyMd">
-                Combines static source analysis with runtime testing using a
-                real browser. Catches contrast issues, computed accessible names,
-                and dynamic content that source-only analysis misses.
-              </Text>
-
-              {isPro ? (
-                <Form method="post">
-                  <BlockStack gap="400">
-                    <Select
-                      label="Theme"
-                      options={themeOptions}
-                      value={selectedTheme}
-                      onChange={setSelectedTheme}
-                    />
-                    <input type="hidden" name="themeId" value={selectedTheme} />
+                <input type="hidden" name="themeId" value={selectedTheme} />
+                {isPro && (
+                  <>
                     <input type="hidden" name="intent" value="deep-scan" />
-
-                    <TextField
-                      label="Store password"
-                      type="password"
-                      value={storePassword}
-                      onChange={setStorePassword}
-                      helpText={
-                        hasStoredPassword
-                          ? "Leave blank to use your saved password."
-                          : "Required if your store is password-protected."
-                      }
-                      autoComplete="off"
-                    />
                     <input type="hidden" name="storePassword" value={storePassword} />
+                  </>
+                )}
+                <Button
+                  variant="primary"
+                  submit
+                  loading={isScanning}
+                  disabled={isScanning}
+                >
+                  {isScanning ? "Scanning..." : "Start Scan"}
+                </Button>
+              </Form>
 
-                    <Button
-                      variant="primary"
-                      tone="success"
-                      submit
-                      loading={isScanning}
-                      disabled={isScanning}
-                    >
-                      {isScanning ? "Scanning..." : "Start Deep Scan"}
-                    </Button>
-                  </BlockStack>
-                </Form>
-              ) : (
-                <BlockStack gap="200">
-                  <Text as="p" variant="bodySm" tone="subdued">
-                    Deep Scan is available on the Pro plan.
-                  </Text>
-                  <Button url="/app/billing">Upgrade to Pro</Button>
-                </BlockStack>
+              {isPro && (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Your scan includes Deep Scan -- source analysis plus
+                  real-browser testing.
+                </Text>
+              )}
+
+              {!isPro && (
+                <Text as="p" variant="bodySm" tone="subdued">
+                  Pro plan adds Deep Scan: real-browser testing for rendered
+                  contrast, computed accessible names, and a composite score.{" "}
+                  <Button variant="plain" url="/app/billing">
+                    Upgrade to Pro
+                  </Button>
+                </Text>
               )}
             </BlockStack>
           </Card>
         </Layout.Section>
-
-        <Layout.Section variant="oneThird">
+        <Layout.Section variant="oneHalf">
           <Card>
             <BlockStack gap="200">
               <Text as="h3" variant="headingMd">
                 What we check
               </Text>
               <ul style={{ paddingLeft: "1.5em", margin: 0 }}>
-                <li>Missing image alt text (SC 1.1.1)</li>
-                <li>Heading hierarchy (SC 1.3.1)</li>
-                <li>Form input labels (SC 1.3.1)</li>
-                <li>Color contrast (SC 1.4.3, 1.4.6)</li>
-                <li>Generic link text (SC 2.4.4)</li>
+                <li>Image alt text (SC 1.1.1)</li>
+                <li>Heading hierarchy and form structure (SC 1.3.1)</li>
+                <li>Input autocomplete attributes (SC 1.3.5)</li>
+                <li>Color contrast -- AA and AAA (SC 1.4.3, 1.4.6)</li>
+                <li>Skip navigation links (SC 2.4.1)</li>
+                <li>Page titles (SC 2.4.2)</li>
+                <li>Link purpose and generic link text (SC 2.4.4)</li>
+                <li>Heading and label quality (SC 2.4.6)</li>
                 <li>Focus visibility (SC 2.4.7)</li>
-                <li>Target size (SC 2.5.8)</li>
+                <li>Label in name (SC 2.5.3)</li>
+                <li>Touch target size -- AA and AAA (SC 2.5.5, 2.5.8)</li>
                 <li>Page language (SC 3.1.1)</li>
-                <li>ARIA validation (SC 4.1.2)</li>
+                <li>Form labels and instructions (SC 3.3.2)</li>
+                <li>ARIA roles and attributes (SC 4.1.2)</li>
               </ul>
-              <Divider />
-              <Text as="h3" variant="headingMd">
-                Deep Scan adds
-              </Text>
-              <ul style={{ paddingLeft: "1.5em", margin: 0 }}>
-                <li>Rendered contrast validation</li>
-                <li>Computed accessible names</li>
-                <li>Dynamic content checks</li>
-                <li>Composite accessibility score</li>
-              </ul>
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="200">
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="h3" variant="headingMd">
+                  Deep Scan adds
+                </Text>
+                <Badge tone="info">Pro</Badge>
+              </InlineStack>
+              <InlineStack gap="800" align="start">
+                <ul style={{ paddingLeft: "1.5em", margin: 0 }}>
+                  <li>Rendered contrast validation in a real browser</li>
+                  <li>Computed accessible names for interactive elements</li>
+                  <li>Composite accessibility score (0-100)</li>
+                </ul>
+                <ul style={{ paddingLeft: "1.5em", margin: 0 }}>
+                  <li>Color-only link distinction (SC 1.4.1)</li>
+                  <li>Focus order and tabindex issues (SC 2.4.3)</li>
+                  <li>Language of parts (SC 3.1.2)</li>
+                </ul>
+              </InlineStack>
             </BlockStack>
           </Card>
         </Layout.Section>

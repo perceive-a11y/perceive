@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import prisma from "~/lib/db.server";
+import { WCAG_CRITERIA } from "~/lib/wcag-criteria";
 
 /**
  * Public report — resource route (no default export).
@@ -94,8 +95,14 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
   // Build grouped findings HTML
   let findingsHtml = "";
   for (const [criterion, items] of grouped) {
+    const criterionMeta = WCAG_CRITERIA[criterion];
+    const criterionName = criterionMeta?.name ?? "";
+    const criterionDesc = criterionMeta?.description ?? "";
     findingsHtml += `<section class="criterion-group" data-criterion="${esc(criterion)}">`;
-    findingsHtml += `<h3>WCAG ${esc(criterion)} <small>(${items.length} ${items.length === 1 ? "finding" : "findings"})</small></h3>`;
+    findingsHtml += `<h3>SC ${esc(criterion)} -- ${esc(criterionName)} <small>(${items.length} ${items.length === 1 ? "finding" : "findings"})</small></h3>`;
+    if (criterionDesc) {
+      findingsHtml += `<p class="criterion-desc">${esc(criterionDesc)}</p>`;
+    }
     for (const f of items) {
       const locationHtml = f.source === "axe" && f.pageUrl
         ? `<code>${esc(f.pageUrl)}</code>`
@@ -258,6 +265,12 @@ export const loader = async ({ params }: LoaderFunctionArgs) => {
     [data-theme="dark"] .source-badge.lighthouse {
       background: #451a03;
       color: #fbbf24;
+    }
+    .criterion-desc {
+      font-size: 0.9rem;
+      color: var(--pico-muted-color);
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
     }
     .finding-element { font-size: 0.9rem; color: var(--pico-muted-color); }
     .suggestion {

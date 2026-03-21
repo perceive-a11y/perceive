@@ -15,12 +15,14 @@ import {
   DataTable,
   EmptyState,
   Spinner,
+  CalloutCard,
 } from "@shopify/polaris";
 
 import shopify from "~/lib/shopify.server";
 import prisma from "~/lib/db.server";
-import { SEVERITY_RANK, SEVERITY_TONE } from "~/lib/severity";
-import { normalizeDedupeKey } from "~/lib/deep-scan.server";
+import { SEVERITY_TONE } from "~/lib/severity";
+import { buildScanSummary } from "~/lib/scan-summary.server";
+import { WCAG_CRITERIA } from "~/lib/wcag-criteria";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await shopify.authenticate.admin(request);
@@ -29,16 +31,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
   const billingStatus = url.searchParams.get("billing");
 
-  // Get merchant and latest scan
+  // Get merchant and latest scan with findings
   const merchant = await prisma.merchant.findUnique({
     where: { shopDomain },
     include: {
       scans: {
         orderBy: { startedAt: "desc" },
         take: 1,
-        include: {
-          findings: true,
-        },
+        include: { findings: true },
       },
     },
   });
@@ -53,91 +53,97 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       billingStatus,
       isDeepScanning: false,
       score: null,
+      plan: merchant?.plan ?? "free",
+      historyScans: [],
+      trend: null,
     });
   }
 
   const scan = merchant.scans[0];
-  const findings = scan.findings;
 
-  const isDeepScanning = scan.status === "deep-scan-pending"
-    || scan.status === "deep-scan-running";
+  const isDeepScanning =
+    scan.status === "deep-scan-pending" || scan.status === "deep-scan-running";
 
-  // Deduplicate findings for display counts
-  const deduped = new Map<string, { severity: string; sources: Set<string> }>();
-  for (const f of findings) {
-    const key = normalizeDedupeKey(f.criterionId, f.element);
-    const existing = deduped.get(key);
-    if (existing) {
-      existing.sources.add(f.source);
-      if ((SEVERITY_RANK[f.severity] ?? 4) < (SEVERITY_RANK[existing.severity] ?? 4)) {
-        existing.severity = f.severity;
-      }
-    } else {
-      deduped.set(key, { severity: f.severity, sources: new Set([f.source]) });
-    }
-  }
+  const { summary, criterionGroups } = buildScanSummary(scan.findings);
 
-  // Compute summary from deduplicated findings
-  let criticalCount = 0;
-  let seriousCount = 0;
-  let moderateCount = 0;
-  let minorCount = 0;
-  for (const f of deduped.values()) {
-    switch (f.severity) {
-      case "critical": criticalCount++; break;
-      case "serious": seriousCount++; break;
-      case "moderate": moderateCount++; break;
-      default: minorCount++; break;
-    }
-  }
+  // Fetch recent scans for history (lightweight, no findings)
+  const recentScans = await prisma.scan.findMany({
+    where: { merchantId: merchant.id, status: "completed" },
+    orderBy: { startedAt: "desc" },
+    take: 11,
+    select: {
+      id: true,
+      scanType: true,
+      themeName: true,
+      score: true,
+      startedAt: true,
+      completedAt: true,
+      templateCount: true,
+      _count: { select: { findings: true } },
+    },
+  });
 
-  const summary = {
-    critical: criticalCount,
-    serious: seriousCount,
-    moderate: moderateCount,
-    minor: minorCount,
-    total: deduped.size,
-    filesScanned: scan.templateCount,
-    completedAt: scan.completedAt?.toISOString() ?? null,
-    status: scan.status,
-  };
+  // Build per-scan severity counts for history + trend
+  const scanIds = recentScans.map((s) => s.id);
+  const severityCounts = scanIds.length > 0
+    ? await prisma.finding.groupBy({
+        by: ["scanId", "severity"],
+        where: { scanId: { in: scanIds } },
+        _count: { id: true },
+      })
+    : [];
 
-  // Group findings by criterion for the table
-  // Track sources per criterion group for the "Source" column
-  const byCriterion = new Map<
-    string,
-    { criterionId: string; count: number; severity: string; sources: Set<string> }
+  // Index severity counts by scanId
+  const severityByScan = new Map<
+    number,
+    { critical: number; serious: number; moderate: number; minor: number; total: number }
   >();
-  for (const f of findings) {
-    const existing = byCriterion.get(f.criterionId);
-    if (existing) {
-      existing.count++;
-      existing.sources.add(f.source);
-      if (
-        (SEVERITY_RANK[f.severity] ?? 4) <
-        (SEVERITY_RANK[existing.severity] ?? 4)
-      ) {
-        existing.severity = f.severity;
-      }
-    } else {
-      byCriterion.set(f.criterionId, {
-        criterionId: f.criterionId,
-        count: 1,
-        severity: f.severity,
-        sources: new Set([f.source]),
-      });
+  for (const row of severityCounts) {
+    let entry = severityByScan.get(row.scanId);
+    if (!entry) {
+      entry = { critical: 0, serious: 0, moderate: 0, minor: 0, total: 0 };
+      severityByScan.set(row.scanId, entry);
     }
+    const count = row._count.id;
+    entry.total += count;
+    if (row.severity === "critical") entry.critical += count;
+    else if (row.severity === "serious") entry.serious += count;
+    else if (row.severity === "moderate") entry.moderate += count;
+    else entry.minor += count;
   }
 
-  // Serialize sources (Sets aren't JSON-serializable), sort by severity
-  const criterionGroups = Array.from(byCriterion.values())
-    .sort((a, b) => (SEVERITY_RANK[a.severity] ?? 4) - (SEVERITY_RANK[b.severity] ?? 4))
-    .map((g) => ({
-      criterionId: g.criterionId,
-      count: g.count,
-      severity: g.severity,
-      sources: Array.from(g.sources),
-    }));
+  const historyScans = recentScans.map((s) => {
+    const counts = severityByScan.get(s.id) ?? {
+      critical: 0, serious: 0, moderate: 0, minor: 0, total: 0,
+    };
+    return {
+      id: s.id,
+      scanType: s.scanType,
+      themeName: s.themeName || "Active theme",
+      score: s.score,
+      startedAt: s.startedAt.toISOString(),
+      completedAt: s.completedAt?.toISOString() ?? null,
+      templateCount: s.templateCount,
+      findingCount: s._count.findings,
+      critical: counts.critical,
+      serious: counts.serious,
+      total: counts.total,
+    };
+  });
+
+  // Compute trend: compare latest vs previous completed scan
+  let trend: {
+    totalDelta: number;
+    criticalDelta: number;
+  } | null = null;
+  if (historyScans.length >= 2) {
+    const latest = historyScans[0];
+    const previous = historyScans[1];
+    trend = {
+      totalDelta: latest.total - previous.total,
+      criticalDelta: latest.critical - previous.critical,
+    };
+  }
 
   return json({
     hasScan: true,
@@ -148,16 +154,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       themeName: scan.themeName || "Active theme",
       completedAt: scan.completedAt?.toISOString() ?? null,
     },
-    summary,
+    summary: {
+      ...summary,
+      filesScanned: scan.templateCount,
+      completedAt: scan.completedAt?.toISOString() ?? null,
+      status: scan.status,
+    },
     criterionGroups,
     reportToken: scan.reportToken ?? null,
     billingStatus,
     isDeepScanning,
     score: scan.score,
+    plan: merchant.plan,
+    historyScans,
+    trend,
   });
 };
 
-/** Source badge — describes how an issue was detected, in plain language. */
+/** Source badge -- describes how an issue was detected, in plain language. */
 function sourceBadge(sources: string[]) {
   const hasStatic = sources.includes("static");
   const hasAxe = sources.includes("axe");
@@ -246,19 +260,33 @@ export default function DashboardPage() {
     );
   }
 
-  const { summary, criterionGroups, reportToken, score } = data;
+  const { summary, criterionGroups, reportToken, score, plan, trend, historyScans } = data;
   const isDeep = data.scan?.scanType === "deep";
 
-  const rows = (criterionGroups ?? []).map(
-    (g: { criterionId: string; count: number; severity: string; sources: string[] }) => {
+  const rows = ((criterionGroups ?? []) as Array<{
+    criterionId: string; count: number; severity: string; sources: string[];
+  }>).map((g) => {
+      const meta = WCAG_CRITERIA[g.criterionId];
       const base = [
-        <Button
+        <div
           key={`crit-${g.criterionId}`}
-          variant="plain"
+          role="button"
+          tabIndex={0}
+          style={{ cursor: "pointer" }}
           onClick={() => navigate(`/app/findings/${g.criterionId}`)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") navigate(`/app/findings/${g.criterionId}`);
+          }}
         >
-          {g.criterionId}
-        </Button>,
+          <BlockStack gap="100">
+            <Text as="span" variant="bodyMd" fontWeight="semibold">
+              SC {g.criterionId} -- {meta?.name ?? ""}
+            </Text>
+            <Text as="span" variant="bodySm" tone="subdued">
+              {meta?.description}
+            </Text>
+          </BlockStack>
+        </div>,
         g.count.toString(),
         <Badge key={g.criterionId} tone={SEVERITY_TONE[g.severity] ?? "info"}>
           {g.severity}
@@ -285,6 +313,32 @@ export default function DashboardPage() {
   const tableTypes = isDeep
     ? (["text", "numeric", "text", "text"] as const)
     : (["text", "numeric", "text"] as const);
+
+  // History table rows
+  const historyRows = ((historyScans ?? []) as Array<{
+    id: number; scanType: string; themeName: string; score: number | null;
+    completedAt: string | null; critical: number; serious: number; total: number;
+  }>).map((s) => [
+      <Button
+        key={`hist-${s.id}`}
+        variant="plain"
+        onClick={() => navigate(`/app/history/${s.id}`)}
+      >
+        {s.completedAt ? new Date(s.completedAt).toLocaleDateString() : "In progress"}
+      </Button>,
+      s.themeName,
+      <Badge
+        key={`type-${s.id}`}
+        tone={s.scanType === "deep" ? "success" : "info"}
+      >
+        {s.scanType === "deep" ? "Deep" : "Static"}
+      </Badge>,
+      s.score !== null && s.score !== undefined ? `${s.score}/100` : "--",
+      s.critical.toString(),
+      s.serious.toString(),
+      s.total.toString(),
+    ],
+  );
 
   return (
     <Page
@@ -328,6 +382,37 @@ export default function DashboardPage() {
                 make content inaccessible to some users.
               </p>
             </Banner>
+          </Layout.Section>
+        )}
+
+        {/* Trend banner */}
+        {trend && (
+          <Layout.Section>
+            {trend.totalDelta < 0 ? (
+              <Banner title="Improving" tone="success">
+                <p>
+                  {Math.abs(trend.totalDelta)} fewer{" "}
+                  {Math.abs(trend.totalDelta) === 1 ? "issue" : "issues"} than
+                  your previous scan.
+                  {trend.criticalDelta < 0 &&
+                    ` ${Math.abs(trend.criticalDelta)} fewer critical ${Math.abs(trend.criticalDelta) === 1 ? "issue" : "issues"}.`}
+                </p>
+              </Banner>
+            ) : trend.totalDelta > 0 ? (
+              <Banner title="More issues detected" tone="warning">
+                <p>
+                  {trend.totalDelta} more{" "}
+                  {trend.totalDelta === 1 ? "issue" : "issues"} than your
+                  previous scan.
+                  {trend.criticalDelta > 0 &&
+                    ` ${trend.criticalDelta} more critical ${trend.criticalDelta === 1 ? "issue" : "issues"}.`}
+                </p>
+              </Banner>
+            ) : (
+              <Banner title="No change" tone="info">
+                <p>Issue count is the same as your previous scan.</p>
+              </Banner>
+            )}
           </Layout.Section>
         )}
 
@@ -403,6 +488,27 @@ export default function DashboardPage() {
           </Card>
         </Layout.Section>
 
+        {/* Free tier upgrade CTA */}
+        {plan === "free" && summary && summary.total > 0 && (
+          <Layout.Section>
+            <CalloutCard
+              title="See exactly where each issue is"
+              illustration="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+              primaryAction={{
+                content: "Upgrade to Starter",
+                url: "/app/billing",
+              }}
+            >
+              <p>
+                You have {summary.total} accessibility{" "}
+                {summary.total === 1 ? "issue" : "issues"} across{" "}
+                {summary.filesScanned} files. Upgrade to Starter to see exactly
+                where each issue is and how to fix it.
+              </p>
+            </CalloutCard>
+          </Layout.Section>
+        )}
+
         {reportUrl && (
           <Layout.Section>
             <Card>
@@ -431,6 +537,40 @@ export default function DashboardPage() {
                     Open Report
                   </Button>
                 </InlineStack>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        )}
+
+        {/* Scan History */}
+        {historyScans && historyScans.length >= 2 && (
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingMd">
+                  Scan History
+                </Text>
+                <DataTable
+                  columnContentTypes={[
+                    "text",
+                    "text",
+                    "text",
+                    "text",
+                    "numeric",
+                    "numeric",
+                    "numeric",
+                  ]}
+                  headings={[
+                    "Date",
+                    "Theme",
+                    "Type",
+                    "Score",
+                    "Critical",
+                    "Serious",
+                    "Total",
+                  ]}
+                  rows={historyRows}
+                />
               </BlockStack>
             </Card>
           </Layout.Section>
