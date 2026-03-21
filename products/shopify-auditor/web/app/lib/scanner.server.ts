@@ -14,7 +14,11 @@ import { fileURLToPath } from "url";
 import { Worker } from "node:worker_threads";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const nativePath = resolve(__dirname, "../../../native/shopify-auditor.node");
+// Dev: CWD is web/, module is at ../native/. Prod: CWD is /app, module is at native/.
+const nativeCandidates = [
+  resolve(process.cwd(), "native/shopify-auditor.node"),
+  resolve(process.cwd(), "../native/shopify-auditor.node"),
+];
 
 let nativeModule: {
   scanTheme: (files: Array<{ filename: string; content: string }>) => ScanResult;
@@ -25,9 +29,18 @@ let usingRustEngine = false;
 
 try {
   const require = createRequire(import.meta.url);
-  nativeModule = require(nativePath);
-  usingRustEngine = true;
-  console.log("[scanner] Rust native engine loaded successfully");
+  // Try each candidate path; first one that exists wins.
+  for (const candidate of nativeCandidates) {
+    try {
+      nativeModule = require(candidate);
+      usingRustEngine = true;
+      console.log(`[scanner] Rust native engine loaded from ${candidate}`);
+      break;
+    } catch {
+      // Try next candidate.
+    }
+  }
+  if (!usingRustEngine) throw new Error("No candidate path resolved");
 } catch (e) {
   console.warn(
     `[scanner] Native module not found, using stub. Error: ${e instanceof Error ? e.message : e}`
