@@ -162,10 +162,10 @@ export default function FindingsDetailPage() {
   const backUrl = scanId ? `/app/history/${scanId}` : "/app";
 
   const title = meta
-    ? `SC ${criterionId} -- ${meta.name}`
+    ? `SC ${criterionId} - ${meta.name}`
     : `WCAG ${criterionId}`;
   const subtitle = meta?.description
-    ? `${count} ${count === 1 ? "finding" : "findings"} -- ${meta.description}`
+    ? `${count} ${count === 1 ? "finding" : "findings"} - ${meta.description}`
     : `${count} ${count === 1 ? "finding" : "findings"}`;
 
   // Gated view for free plan
@@ -211,7 +211,7 @@ export default function FindingsDetailPage() {
               }}
             >
               <p>
-                Upgrade to Starter to see exactly where each issue is -- file
+                Upgrade to Starter to see exactly where each issue is - file
                 paths, line numbers, and fix suggestions for every finding.
               </p>
             </CalloutCard>

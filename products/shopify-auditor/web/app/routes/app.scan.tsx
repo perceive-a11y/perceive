@@ -277,7 +277,7 @@ export default function ScanPage() {
 
               {isPro && (
                 <Text as="p" variant="bodySm" tone="subdued">
-                  Your scan includes Deep Scan -- source analysis plus
+                  Your scan includes Deep Scan - source analysis plus
                   real-browser testing.
                 </Text>
               )}
@@ -304,14 +304,14 @@ export default function ScanPage() {
                 <li>Image alt text (SC 1.1.1)</li>
                 <li>Heading hierarchy and form structure (SC 1.3.1)</li>
                 <li>Input autocomplete attributes (SC 1.3.5)</li>
-                <li>Color contrast -- AA and AAA (SC 1.4.3, 1.4.6)</li>
+                <li>Color contrast - AA and AAA (SC 1.4.3, 1.4.6)</li>
                 <li>Skip navigation links (SC 2.4.1)</li>
                 <li>Page titles (SC 2.4.2)</li>
                 <li>Link purpose and generic link text (SC 2.4.4)</li>
                 <li>Heading and label quality (SC 2.4.6)</li>
                 <li>Focus visibility (SC 2.4.7)</li>
                 <li>Label in name (SC 2.5.3)</li>
-                <li>Touch target size -- AA and AAA (SC 2.5.5, 2.5.8)</li>
+                <li>Touch target size - AA and AAA (SC 2.5.5, 2.5.8)</li>
                 <li>Page language (SC 3.1.1)</li>
                 <li>Form labels and instructions (SC 3.3.2)</li>
                 <li>ARIA roles and attributes (SC 4.1.2)</li>

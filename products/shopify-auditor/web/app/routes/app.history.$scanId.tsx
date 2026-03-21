@@ -61,7 +61,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   });
 };
 
-/** Source badge -- describes how an issue was detected. */
+/** Source badge - describes how an issue was detected. */
 function sourceBadge(sources: string[]) {
   const hasStatic = sources.includes("static");
   const hasAxe = sources.includes("axe");
@@ -100,7 +100,7 @@ export default function HistoryScanPage() {
         >
           <BlockStack gap="100">
             <Text as="span" variant="bodyMd" fontWeight="semibold">
-              SC {g.criterionId} -- {meta?.name ?? ""}
+              SC {g.criterionId} - {meta?.name ?? ""}
             </Text>
             <Text as="span" variant="bodySm" tone="subdued">
               {meta?.description}
