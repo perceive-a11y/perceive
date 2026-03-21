@@ -352,7 +352,7 @@ mod tests {
     fn criteria_ids_are_sorted() {
         let ids: Vec<&str> = static_criteria().iter().map(|c| c.id).collect();
         let mut sorted = ids.clone();
-        sorted.sort();
+        sorted.sort_unstable();
         assert_eq!(ids, sorted, "criteria should be sorted by ID");
     }
 
