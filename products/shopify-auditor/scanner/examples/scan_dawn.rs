@@ -5,7 +5,7 @@
 //! Expects Dawn to be cloned at /tmp/dawn:
 //!   git clone --depth 1 https://github.com/Shopify/dawn.git /tmp/dawn
 
-use shopify_auditor_scanner::pipeline::{scan_theme, ThemeFile};
+use shopify_auditor_scanner::pipeline::{ThemeFile, scan_theme};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -14,7 +14,9 @@ fn main() {
     let dawn_path = Path::new("/tmp/dawn");
     if !dawn_path.exists() {
         eprintln!("Dawn theme not found at /tmp/dawn");
-        eprintln!("Clone it first: git clone --depth 1 https://github.com/Shopify/dawn.git /tmp/dawn");
+        eprintln!(
+            "Clone it first: git clone --depth 1 https://github.com/Shopify/dawn.git /tmp/dawn"
+        );
         std::process::exit(1);
     }
 

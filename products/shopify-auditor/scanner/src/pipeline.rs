@@ -81,13 +81,26 @@ pub fn scan_theme(files: &[ThemeFile]) -> ScanResult {
         all_findings.extend(checks::language::check(&elements, &file.path, &line_fn));
         all_findings.extend(checks::aria::check(&elements, &file.path, &line_fn));
         all_findings.extend(checks::page_title::check(
-            &elements, &file.path, &line_fn, &file.content,
+            &elements,
+            &file.path,
+            &line_fn,
+            &file.content,
         ));
-        all_findings.extend(checks::input_purpose::check(&elements, &file.path, &line_fn));
-        all_findings.extend(checks::accessible_name::check(&elements, &file.path, &line_fn));
-        all_findings.extend(checks::bypass_blocks::check(&elements, &file.path, &line_fn));
-        all_findings.extend(checks::heading_labels::check(&elements, &file.path, &line_fn));
-        all_findings.extend(checks::label_in_name::check(&elements, &file.path, &line_fn));
+        all_findings.extend(checks::input_purpose::check(
+            &elements, &file.path, &line_fn,
+        ));
+        all_findings.extend(checks::accessible_name::check(
+            &elements, &file.path, &line_fn,
+        ));
+        all_findings.extend(checks::bypass_blocks::check(
+            &elements, &file.path, &line_fn,
+        ));
+        all_findings.extend(checks::heading_labels::check(
+            &elements, &file.path, &line_fn,
+        ));
+        all_findings.extend(checks::label_in_name::check(
+            &elements, &file.path, &line_fn,
+        ));
     }
 
     // Sort findings by severity (most critical first), then by file path

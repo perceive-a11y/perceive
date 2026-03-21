@@ -6,9 +6,7 @@ use crate::html::HtmlElement;
 use a11y_rules::Severity;
 
 /// Input types that collect personal information and should have autocomplete.
-const PERSONAL_INPUT_TYPES: &[&str] = &[
-    "text", "email", "tel", "url", "password", "search",
-];
+const PERSONAL_INPUT_TYPES: &[&str] = &["text", "email", "tel", "url", "password", "search"];
 
 /// Valid autocomplete tokens per the WHATWG autofill spec (section + field).
 /// See: <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill>

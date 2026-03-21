@@ -47,10 +47,7 @@ pub fn check(
         }
         // Check visible text or aria-label for skip-related wording
         let text = e.inner_text.to_lowercase();
-        let label = e
-            .attr("aria-label")
-            .unwrap_or("")
-            .to_lowercase();
+        let label = e.attr("aria-label").unwrap_or("").to_lowercase();
         let combined = format!("{text} {label}");
         combined.contains("skip")
             || combined.contains("main content")

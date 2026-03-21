@@ -98,11 +98,7 @@ mod tests {
 
     #[test]
     fn allows_label_containing_text() {
-        let elements = vec![el(
-            "button",
-            &[("aria-label", "Search products")],
-            "Search",
-        )];
+        let elements = vec![el("button", &[("aria-label", "Search products")], "Search")];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert!(findings.is_empty());
     }

@@ -3,10 +3,10 @@
 //! Parses CSS stylesheets to extract properties relevant to accessibility
 //! checks: colors, outlines, dimensions on interactive elements.
 
-use lightningcss::properties::custom::UnparsedProperty;
 use lightningcss::properties::Property;
 use lightningcss::properties::PropertyId;
 use lightningcss::properties::border::LineStyle;
+use lightningcss::properties::custom::UnparsedProperty;
 use lightningcss::properties::outline::OutlineStyle;
 use lightningcss::properties::size::Size;
 use lightningcss::rules::CssRule;

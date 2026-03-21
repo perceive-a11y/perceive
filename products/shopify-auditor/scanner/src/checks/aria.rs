@@ -144,10 +144,16 @@ const VALID_ARIA_ATTRS: &[&str] = &[
 const ENUM_ATTRS: &[(&str, &[&str])] = &[
     ("aria-autocomplete", &["inline", "list", "both", "none"]),
     ("aria-checked", &["true", "false", "mixed", "undefined"]),
-    ("aria-current", &["page", "step", "location", "date", "time", "true", "false"]),
+    (
+        "aria-current",
+        &["page", "step", "location", "date", "time", "true", "false"],
+    ),
     ("aria-disabled", &["true", "false"]),
     ("aria-expanded", &["true", "false", "undefined"]),
-    ("aria-haspopup", &["true", "false", "menu", "listbox", "tree", "grid", "dialog"]),
+    (
+        "aria-haspopup",
+        &["true", "false", "menu", "listbox", "tree", "grid", "dialog"],
+    ),
     ("aria-hidden", &["true", "false"]),
     ("aria-invalid", &["true", "false", "grammar", "spelling"]),
     ("aria-live", &["off", "polite", "assertive"]),
@@ -165,45 +171,164 @@ const ENUM_ATTRS: &[(&str, &[&str])] = &[
 /// Widget attributes and the roles they're allowed on.
 /// Attributes NOT in this map are global (allowed everywhere).
 const ROLE_ATTR_COUPLING: &[(&str, &[&str])] = &[
-    ("aria-checked", &[
-        "checkbox", "menuitemcheckbox", "menuitemradio", "option", "radio", "switch",
-    ]),
-    ("aria-selected", &[
-        "gridcell", "option", "row", "tab", "columnheader", "rowheader", "treeitem",
-    ]),
+    (
+        "aria-checked",
+        &[
+            "checkbox",
+            "menuitemcheckbox",
+            "menuitemradio",
+            "option",
+            "radio",
+            "switch",
+        ],
+    ),
+    (
+        "aria-selected",
+        &[
+            "gridcell",
+            "option",
+            "row",
+            "tab",
+            "columnheader",
+            "rowheader",
+            "treeitem",
+        ],
+    ),
     ("aria-pressed", &["button"]),
-    ("aria-expanded", &[
-        "button", "combobox", "link", "menuitem", "row", "tab", "treeitem",
-        "application", "gridcell",
-    ]),
-    ("aria-level", &["heading", "listitem", "row", "tablist", "treeitem"]),
-    ("aria-multiselectable", &["grid", "listbox", "tablist", "tree", "treegrid"]),
-    ("aria-orientation", &[
-        "scrollbar", "separator", "slider", "tablist", "toolbar",
-        "listbox", "menu", "menubar", "radiogroup", "tree", "treegrid",
-    ]),
+    (
+        "aria-expanded",
+        &[
+            "button",
+            "combobox",
+            "link",
+            "menuitem",
+            "row",
+            "tab",
+            "treeitem",
+            "application",
+            "gridcell",
+        ],
+    ),
+    (
+        "aria-level",
+        &["heading", "listitem", "row", "tablist", "treeitem"],
+    ),
+    (
+        "aria-multiselectable",
+        &["grid", "listbox", "tablist", "tree", "treegrid"],
+    ),
+    (
+        "aria-orientation",
+        &[
+            "scrollbar",
+            "separator",
+            "slider",
+            "tablist",
+            "toolbar",
+            "listbox",
+            "menu",
+            "menubar",
+            "radiogroup",
+            "tree",
+            "treegrid",
+        ],
+    ),
     ("aria-sort", &["columnheader", "rowheader"]),
     ("aria-autocomplete", &["combobox", "searchbox", "textbox"]),
     ("aria-multiline", &["searchbox", "textbox"]),
     ("aria-placeholder", &["searchbox", "textbox"]),
-    ("aria-readonly", &[
-        "checkbox", "combobox", "grid", "gridcell", "listbox",
-        "radiogroup", "searchbox", "slider", "spinbutton", "textbox",
-        "treegrid",
-    ]),
-    ("aria-required", &[
-        "checkbox", "combobox", "gridcell", "listbox", "radiogroup",
-        "searchbox", "spinbutton", "textbox", "tree", "treegrid",
-    ]),
-    ("aria-activedescendant", &[
-        "application", "combobox", "grid", "group", "listbox",
-        "menu", "menubar", "radiogroup", "textbox", "tree", "treegrid",
-    ]),
+    (
+        "aria-readonly",
+        &[
+            "checkbox",
+            "combobox",
+            "grid",
+            "gridcell",
+            "listbox",
+            "radiogroup",
+            "searchbox",
+            "slider",
+            "spinbutton",
+            "textbox",
+            "treegrid",
+        ],
+    ),
+    (
+        "aria-required",
+        &[
+            "checkbox",
+            "combobox",
+            "gridcell",
+            "listbox",
+            "radiogroup",
+            "searchbox",
+            "spinbutton",
+            "textbox",
+            "tree",
+            "treegrid",
+        ],
+    ),
+    (
+        "aria-activedescendant",
+        &[
+            "application",
+            "combobox",
+            "grid",
+            "group",
+            "listbox",
+            "menu",
+            "menubar",
+            "radiogroup",
+            "textbox",
+            "tree",
+            "treegrid",
+        ],
+    ),
     ("aria-modal", &["dialog", "alertdialog"]),
-    ("aria-valuemin", &["meter", "progressbar", "scrollbar", "separator", "slider", "spinbutton"]),
-    ("aria-valuemax", &["meter", "progressbar", "scrollbar", "separator", "slider", "spinbutton"]),
-    ("aria-valuenow", &["meter", "progressbar", "scrollbar", "separator", "slider", "spinbutton"]),
-    ("aria-valuetext", &["meter", "progressbar", "scrollbar", "separator", "slider", "spinbutton"]),
+    (
+        "aria-valuemin",
+        &[
+            "meter",
+            "progressbar",
+            "scrollbar",
+            "separator",
+            "slider",
+            "spinbutton",
+        ],
+    ),
+    (
+        "aria-valuemax",
+        &[
+            "meter",
+            "progressbar",
+            "scrollbar",
+            "separator",
+            "slider",
+            "spinbutton",
+        ],
+    ),
+    (
+        "aria-valuenow",
+        &[
+            "meter",
+            "progressbar",
+            "scrollbar",
+            "separator",
+            "slider",
+            "spinbutton",
+        ],
+    ),
+    (
+        "aria-valuetext",
+        &[
+            "meter",
+            "progressbar",
+            "scrollbar",
+            "separator",
+            "slider",
+            "spinbutton",
+        ],
+    ),
 ];
 
 /// Check elements for invalid ARIA roles, attributes, values, and coupling.
@@ -310,18 +435,16 @@ fn check_aria_attrs(
                         allowed.join(", "),
                         tag = elem.tag,
                     ),
-                    suggestion: format!(
-                        "Change `{attr_name}` to one of: {}.",
-                        allowed.join(", "),
-                    ),
+                    suggestion: format!("Change `{attr_name}` to one of: {}.", allowed.join(", "),),
                 });
             }
         }
 
         // Role-attribute coupling
         if !role.is_empty() && VALID_ROLES.contains(&role) {
-            if let Some((_, allowed_roles)) =
-                ROLE_ATTR_COUPLING.iter().find(|(name, _)| *name == attr_name)
+            if let Some((_, allowed_roles)) = ROLE_ATTR_COUPLING
+                .iter()
+                .find(|(name, _)| *name == attr_name)
             {
                 if !allowed_roles.contains(&role) {
                     findings.push(Finding {
@@ -453,30 +576,46 @@ mod tests {
 
     #[test]
     fn valid_checked_on_checkbox() {
-        let elements = vec![elem("div", &[("role", "checkbox"), ("aria-checked", "true")])];
+        let elements = vec![elem(
+            "div",
+            &[("role", "checkbox"), ("aria-checked", "true")],
+        )];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert!(findings.is_empty());
     }
 
     #[test]
     fn invalid_checked_on_paragraph() {
-        let elements = vec![elem("div", &[("role", "heading"), ("aria-checked", "true")])];
+        let elements = vec![elem(
+            "div",
+            &[("role", "heading"), ("aria-checked", "true")],
+        )];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].severity, Severity::Serious);
-        assert!(findings[0].message.contains("not valid for role=\"heading\""));
+        assert!(
+            findings[0]
+                .message
+                .contains("not valid for role=\"heading\"")
+        );
     }
 
     #[test]
     fn valid_expanded_on_button() {
-        let elements = vec![elem("button", &[("role", "button"), ("aria-expanded", "false")])];
+        let elements = vec![elem(
+            "button",
+            &[("role", "button"), ("aria-expanded", "false")],
+        )];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert!(findings.is_empty());
     }
 
     #[test]
     fn invalid_sort_on_button() {
-        let elements = vec![elem("div", &[("role", "button"), ("aria-sort", "ascending")])];
+        let elements = vec![elem(
+            "div",
+            &[("role", "button"), ("aria-sort", "ascending")],
+        )];
         let findings = check(&elements, "test.liquid", &|_| 1);
         let coupling_findings: Vec<_> = findings
             .iter()

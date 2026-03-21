@@ -124,7 +124,12 @@ mod tests {
     #[test]
     fn flags_empty_title() {
         let elements = vec![html_el(), title_el("")];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<html><title></title></html>");
+        let findings = check(
+            &elements,
+            "layout/theme.liquid",
+            &|_| 1,
+            "<html><title></title></html>",
+        );
         assert_eq!(findings.len(), 1);
         assert!(findings[0].message.contains("empty"));
     }
@@ -132,14 +137,24 @@ mod tests {
     #[test]
     fn allows_liquid_stripped_title() {
         let elements = vec![html_el(), title_el("                    ")];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<title>{{ page_title }}</title>");
+        let findings = check(
+            &elements,
+            "layout/theme.liquid",
+            &|_| 1,
+            "<title>{{ page_title }}</title>",
+        );
         assert!(findings.is_empty());
     }
 
     #[test]
     fn allows_valid_title() {
         let elements = vec![html_el(), title_el("My Store - Products")];
-        let findings = check(&elements, "layout/theme.liquid", &|_| 1, "<title>My Store</title>");
+        let findings = check(
+            &elements,
+            "layout/theme.liquid",
+            &|_| 1,
+            "<title>My Store</title>",
+        );
         assert!(findings.is_empty());
     }
 

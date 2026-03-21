@@ -123,23 +123,26 @@ fn build_handlers<'h>(
     let tb_void = text_buf.clone();
     let src_void = source.clone();
     let cur_void = cursor.clone();
-    handlers.push(element!("html, img, input, select, textarea, main", move |e| {
-        flush_pending(&p_void, &tb_void, &el_void);
-        let tag = e.tag_name().to_lowercase();
-        let offset = find_tag_offset(&src_void, &cur_void, &tag);
-        let attrs: Vec<(String, String)> = e
-            .attributes()
-            .iter()
-            .map(|a| (a.name().to_lowercase(), a.value().to_string()))
-            .collect();
-        el_void.lock().expect("lock poisoned").push(HtmlElement {
-            tag,
-            attrs,
-            inner_text: String::new(),
-            byte_offset: offset,
-        });
-        Ok(())
-    }));
+    handlers.push(element!(
+        "html, img, input, select, textarea, main",
+        move |e| {
+            flush_pending(&p_void, &tb_void, &el_void);
+            let tag = e.tag_name().to_lowercase();
+            let offset = find_tag_offset(&src_void, &cur_void, &tag);
+            let attrs: Vec<(String, String)> = e
+                .attributes()
+                .iter()
+                .map(|a| (a.name().to_lowercase(), a.value().to_string()))
+                .collect();
+            el_void.lock().expect("lock poisoned").push(HtmlElement {
+                tag,
+                attrs,
+                inner_text: String::new(),
+                byte_offset: offset,
+            });
+            Ok(())
+        }
+    ));
 
     // -- Text-bearing tags: a, button, h1-h6, label, title --
     let el_text = elements.clone();
@@ -192,8 +195,8 @@ fn build_handlers<'h>(
         move |e| {
             let tag = e.tag_name().to_lowercase();
             let known = [
-                "html", "img", "input", "select", "textarea", "main",
-                "a", "button", "h1", "h2", "h3", "h4", "h5", "h6", "label", "title",
+                "html", "img", "input", "select", "textarea", "main", "a", "button", "h1", "h2",
+                "h3", "h4", "h5", "h6", "label", "title",
             ];
             if known.contains(&tag.as_str()) {
                 return Ok(());
@@ -348,7 +351,8 @@ mod tests {
 
     #[test]
     fn byte_offsets_multiline() {
-        let html = "<html lang=\"en\">\n<body>\n<h1>Title</h1>\n<img src=\"a.png\">\n</body>\n</html>";
+        let html =
+            "<html lang=\"en\">\n<body>\n<h1>Title</h1>\n<img src=\"a.png\">\n</body>\n</html>";
         let elements = extract_elements(html).unwrap();
 
         let html_el = elements.iter().find(|e| e.tag == "html").unwrap();

@@ -47,15 +47,14 @@ pub fn check(
 
     for elem in elements {
         let needs_name = match elem.tag.as_str() {
-            "a" => elem.has_attr("href"),    // Only links, not anchors
+            "a" => elem.has_attr("href"), // Only links, not anchors
             "button" => true,
             _ => {
                 // Check if the element has an interactive ARIA role
-                elem.attr("role")
-                    .is_some_and(|r| {
-                        r.split_whitespace()
-                            .any(|role| ROLES_NEEDING_NAME.contains(&role))
-                    })
+                elem.attr("role").is_some_and(|r| {
+                    r.split_whitespace()
+                        .any(|role| ROLES_NEEDING_NAME.contains(&role))
+                })
             }
         };
 
