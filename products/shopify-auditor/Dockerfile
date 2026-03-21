@@ -32,11 +32,12 @@ FROM node:20-bookworm-slim AS app-builder
 WORKDIR /app
 
 COPY products/shopify-auditor/web/package.json products/shopify-auditor/web/package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY products/shopify-auditor/web/ .
 RUN npx prisma generate \
-    && npm run build
+    && npm run build \
+    && npm prune --omit=dev
 
 
 # Stage 3: Production image
