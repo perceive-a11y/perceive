@@ -6,11 +6,10 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "shopify-auditor",
-    "triples": {
-      "defaults": true,
-      "additional": []
-    }
+    "binaryName": "shopify-auditor",
+    "targets": [
+      "x86_64-unknown-linux-gnu"
+    ]
   },
   "scripts": {
     "build": "napi build --release",

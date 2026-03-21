@@ -131,18 +131,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     };
   });
 
-  // Compute trend: compare latest vs previous completed scan
+  // Compute trend: compare latest vs previous completed scan of the same type.
+  // Comparing across scan types (e.g. Deep vs Static) is misleading because
+  // they run different checks and produce different finding counts.
   let trend: {
     totalDelta: number;
     criticalDelta: number;
   } | null = null;
   if (historyScans.length >= 2) {
     const latest = historyScans[0];
-    const previous = historyScans[1];
-    trend = {
-      totalDelta: latest.total - previous.total,
-      criticalDelta: latest.critical - previous.critical,
-    };
+    const previous = historyScans.slice(1).find(
+      (s) => s.scanType === latest.scanType,
+    );
+    if (previous) {
+      trend = {
+        totalDelta: latest.total - previous.total,
+        criticalDelta: latest.critical - previous.critical,
+      };
+    }
   }
 
   return json({

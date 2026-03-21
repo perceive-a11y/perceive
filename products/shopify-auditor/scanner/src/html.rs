@@ -53,6 +53,7 @@ impl HtmlElement {
 struct PendingElement {
     tag: String,
     attrs: Vec<(String, String)>,
+    byte_offset: usize,
 }
 
 /// Flush any pending text-bearing element into the results list.
@@ -70,9 +71,38 @@ fn flush_pending(
             // Preserve raw text (don't trim) so checks can distinguish
             // truly empty elements from Liquid-stripped whitespace.
             inner_text: std::mem::take(&mut *buf),
-            byte_offset: 0,
+            byte_offset: p.byte_offset,
         });
     }
+}
+
+/// Search for the next occurrence of `<tag_name` in `source` starting at
+/// `cursor`, where the character after the tag name is not alphanumeric or
+/// a hyphen (to avoid `<a` matching `<article>` or `<aside>`).
+///
+/// Returns the byte offset of `<` and advances the cursor past the match.
+/// Falls back to 0 if the tag is not found (should not happen in practice).
+fn find_tag_offset(source: &[u8], cursor: &Mutex<usize>, tag: &str) -> usize {
+    let needle = format!("<{tag}");
+    let needle_bytes = needle.as_bytes();
+    let mut pos = *cursor.lock().expect("lock poisoned");
+
+    while pos + needle_bytes.len() <= source.len() {
+        if source[pos..].starts_with(needle_bytes) {
+            let after = pos + needle_bytes.len();
+            // Verify next char is not alphanumeric or hyphen to avoid
+            // partial tag name matches (e.g. <a vs <article, <s vs <span).
+            if after >= source.len()
+                || (!source[after].is_ascii_alphanumeric() && source[after] != b'-')
+            {
+                *cursor.lock().expect("lock poisoned") = after;
+                return pos;
+            }
+        }
+        pos += 1;
+    }
+
+    0
 }
 
 /// Build the `lol_html` element/text content handlers for HTML extraction.
@@ -82,6 +112,8 @@ fn build_handlers<'h>(
     elements: &Arc<Mutex<Vec<HtmlElement>>>,
     pending: &Arc<Mutex<Option<PendingElement>>>,
     text_buf: &Arc<Mutex<String>>,
+    source: &Arc<Vec<u8>>,
+    cursor: &Arc<Mutex<usize>>,
 ) -> Vec<(Cow<'h, Selector>, ElementContentHandlers<'h>)> {
     let mut handlers = Vec::new();
 
@@ -89,18 +121,22 @@ fn build_handlers<'h>(
     let el_void = elements.clone();
     let p_void = pending.clone();
     let tb_void = text_buf.clone();
+    let src_void = source.clone();
+    let cur_void = cursor.clone();
     handlers.push(element!("html, img, input, select, textarea, main", move |e| {
         flush_pending(&p_void, &tb_void, &el_void);
+        let tag = e.tag_name().to_lowercase();
+        let offset = find_tag_offset(&src_void, &cur_void, &tag);
         let attrs: Vec<(String, String)> = e
             .attributes()
             .iter()
             .map(|a| (a.name().to_lowercase(), a.value().to_string()))
             .collect();
         el_void.lock().expect("lock poisoned").push(HtmlElement {
-            tag: e.tag_name().to_lowercase(),
+            tag,
             attrs,
             inner_text: String::new(),
-            byte_offset: 0,
+            byte_offset: offset,
         });
         Ok(())
     }));
@@ -109,10 +145,14 @@ fn build_handlers<'h>(
     let el_text = elements.clone();
     let p_text = pending.clone();
     let tb_text = text_buf.clone();
+    let src_text = source.clone();
+    let cur_text = cursor.clone();
     handlers.push(element!(
         "a, button, h1, h2, h3, h4, h5, h6, label, title",
         move |e| {
             flush_pending(&p_text, &tb_text, &el_text);
+            let tag = e.tag_name().to_lowercase();
+            let offset = find_tag_offset(&src_text, &cur_text, &tag);
             let attrs: Vec<(String, String)> = e
                 .attributes()
                 .iter()
@@ -120,8 +160,9 @@ fn build_handlers<'h>(
                 .collect();
             let mut pend = p_text.lock().expect("lock poisoned");
             *pend = Some(PendingElement {
-                tag: e.tag_name().to_lowercase(),
+                tag,
                 attrs,
+                byte_offset: offset,
             });
             Ok(())
         }
@@ -144,6 +185,8 @@ fn build_handlers<'h>(
     let el_aria = elements.clone();
     let p_aria = pending.clone();
     let tb_aria = text_buf.clone();
+    let src_aria = source.clone();
+    let cur_aria = cursor.clone();
     handlers.push(element!(
         "*[role], *[aria-label], *[aria-labelledby], *[aria-describedby], *[aria-hidden]",
         move |e| {
@@ -156,6 +199,7 @@ fn build_handlers<'h>(
                 return Ok(());
             }
             flush_pending(&p_aria, &tb_aria, &el_aria);
+            let offset = find_tag_offset(&src_aria, &cur_aria, &tag);
             let attrs: Vec<(String, String)> = e
                 .attributes()
                 .iter()
@@ -165,7 +209,7 @@ fn build_handlers<'h>(
                 tag,
                 attrs,
                 inner_text: String::new(),
-                byte_offset: 0,
+                byte_offset: offset,
             });
             Ok(())
         }
@@ -195,8 +239,10 @@ pub fn extract_elements(html: &str) -> Result<Vec<HtmlElement>, lol_html::errors
     let elements: Arc<Mutex<Vec<HtmlElement>>> = Arc::new(Mutex::new(Vec::new()));
     let pending: Arc<Mutex<Option<PendingElement>>> = Arc::new(Mutex::new(None));
     let text_buf: Arc<Mutex<String>> = Arc::new(Mutex::new(String::new()));
+    let source: Arc<Vec<u8>> = Arc::new(html.as_bytes().to_vec());
+    let cursor: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
 
-    let handlers = build_handlers(&elements, &pending, &text_buf);
+    let handlers = build_handlers(&elements, &pending, &text_buf, &source, &cursor);
 
     let mut rewriter = HtmlRewriter::new(
         Settings {
@@ -298,5 +344,30 @@ mod tests {
         let html = "<h1>Unclosed heading<p>Paragraph<img src='x'>";
         let result = extract_elements(html);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn byte_offsets_multiline() {
+        let html = "<html lang=\"en\">\n<body>\n<h1>Title</h1>\n<img src=\"a.png\">\n</body>\n</html>";
+        let elements = extract_elements(html).unwrap();
+
+        let html_el = elements.iter().find(|e| e.tag == "html").unwrap();
+        assert_eq!(html_el.byte_offset, 0);
+
+        let h1 = elements.iter().find(|e| e.tag == "h1").unwrap();
+        assert_eq!(h1.byte_offset, html.find("<h1>").unwrap());
+
+        let img = elements.iter().find(|e| e.tag == "img").unwrap();
+        assert_eq!(img.byte_offset, html.find("<img").unwrap());
+    }
+
+    #[test]
+    fn byte_offset_avoids_partial_tag_match() {
+        // Ensure <a> doesn't match <article>
+        let html = "<article><a href=\"/\">Link</a></article>";
+        let elements = extract_elements(html).unwrap();
+
+        let link = elements.iter().find(|e| e.tag == "a").unwrap();
+        assert_eq!(link.byte_offset, html.find("<a ").unwrap());
     }
 }
