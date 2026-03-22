@@ -68,6 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       score: true,
       templateCount: true,
       reportToken: true,
+      startedAt: true,
       completedAt: true,
     },
   });
@@ -86,6 +87,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       historyScans: [],
       trend: null,
     });
+  }
+
+  // Auto-fail scans stuck in a deep-scan state past the guardian timeout.
+  // The in-memory setTimeout guardian doesn't survive process restarts.
+  const STALE_SCAN_MS = 6 * 60 * 1000;
+  if (
+    (latestScan.status === "deep-scan-pending" ||
+      latestScan.status === "deep-scan-running") &&
+    Date.now() - new Date(latestScan.startedAt).getTime() > STALE_SCAN_MS
+  ) {
+    await prisma.scan.update({
+      where: { id: latestScan.id },
+      data: { status: "failed" },
+    });
+    latestScan.status = "failed";
   }
 
   const isDeepScanning =
@@ -319,18 +335,41 @@ export default function DashboardPage() {
   const revalidator = useRevalidator();
   const navigation = useNavigation();
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollCountRef = useRef(0);
   const [pollStatus, setPollStatus] = useState<string | null>(null);
+
+  // Max polls before giving up (~2 min at 5s interval).
+  // The backend auto-fails stale scans at query time, so this is just a safety net.
+  const MAX_POLLS = 24;
+
+  const stopPolling = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
   // Lightweight poll: hit the scan-status resource route instead of
   // revalidating the entire dashboard. Only revalidate on completion.
   const pollScanStatus = useCallback(async () => {
     if (!data.scan?.id) return;
+
+    pollCountRef.current++;
+    if (pollCountRef.current >= MAX_POLLS) {
+      stopPolling();
+      if (revalidator.state === "idle") {
+        revalidator.revalidate();
+      }
+      return;
+    }
+
     try {
       const res = await fetch(`/app/scan-status?scanId=${data.scan.id}`);
       if (!res.ok) return;
       const { status } = await res.json();
       setPollStatus(status);
       if (status === "completed" || status === "failed") {
+        stopPolling();
         if (revalidator.state === "idle") {
           revalidator.revalidate();
         }
@@ -338,20 +377,18 @@ export default function DashboardPage() {
     } catch {
       // Silently ignore network errors during polling
     }
-  }, [data.scan?.id, revalidator]);
+  }, [data.scan?.id, revalidator, stopPolling]);
 
   useEffect(() => {
     if (data.isDeepScanning) {
+      pollCountRef.current = 0;
       intervalRef.current = setInterval(pollScanStatus, 5000);
     }
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      stopPolling();
     };
-  }, [data.isDeepScanning, pollScanStatus]);
+  }, [data.isDeepScanning, pollScanStatus, stopPolling]);
 
   // Show skeleton during route transitions
   if (navigation.state === "loading") {
