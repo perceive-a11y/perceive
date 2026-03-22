@@ -84,6 +84,59 @@ export async function dispatchDeepScan(
 }
 
 /**
+ * Wake a suspended Fly worker machine via the Machines API.
+ *
+ * Uses the internal API endpoint (`_api.internal:4280`) available to all
+ * machines within the same Fly organization over WireGuard -- no auth token
+ * needed. Lists machines for the worker app, finds one that is suspended or
+ * stopped, and sends a start request. Waits briefly for the machine to
+ * become reachable before returning.
+ *
+ * # Arguments
+ *
+ * * `workerApp` - The Fly app name for the worker (e.g. "perceive-a11y-worker")
+ */
+async function ensureWorkerRunning(workerApp: string): Promise<void> {
+    const apiBase = "http://_api.internal:4280";
+
+    // List all machines for the worker app
+    const listResp = await fetch(`${apiBase}/v1/apps/${workerApp}/machines`, {
+        signal: AbortSignal.timeout(5_000),
+    });
+    if (!listResp.ok) {
+        throw new Error(
+            `Fly Machines API list failed: ${listResp.status} ${await listResp.text().catch(() => "")}`,
+        );
+    }
+
+    const machines = await listResp.json() as Array<{ id: string; state: string }>;
+    const dormant = machines.find(
+        (m) => m.state === "suspended" || m.state === "stopped",
+    );
+
+    if (!dormant) {
+        // All machines are already running (or starting) -- nothing to do
+        return;
+    }
+
+    console.log(`[deep-scan] Waking worker machine ${dormant.id} (was ${dormant.state})`);
+    const startResp = await fetch(
+        `${apiBase}/v1/apps/${workerApp}/machines/${dormant.id}/start`,
+        { method: "POST", signal: AbortSignal.timeout(10_000) },
+    );
+    if (!startResp.ok) {
+        throw new Error(
+            `Fly Machines API start failed: ${startResp.status} ${await startResp.text().catch(() => "")}`,
+        );
+    }
+
+    // Brief pause for the machine to become reachable on .internal DNS.
+    // Suspended machines resume in ~200-500ms; stopped machines take ~2-3s.
+    const waitMs = dormant.state === "suspended" ? 1_000 : 4_000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+}
+
+/**
  * Send the scan job to the remote worker service via HTTP.
  *
  * The worker returns 202 immediately and runs the scan in the background,
@@ -102,6 +155,11 @@ async function dispatchToWorkerService(
     const callbackUrl = `${callbackBase}/internal/scan-results`;
 
     try {
+        // Ensure at least one worker machine is running before dispatching.
+        // Machines with min=0 suspend when idle and .internal DNS won't wake them.
+        const workerApp = process.env.WORKER_APP_NAME || "perceive-a11y-worker";
+        await ensureWorkerRunning(workerApp);
+
         const resp = await fetch(`${workerUrl}/scan`, {
             method: "POST",
             headers: {
