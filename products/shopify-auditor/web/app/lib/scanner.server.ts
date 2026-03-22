@@ -26,6 +26,7 @@ let nativeModule: {
 };
 
 let usingRustEngine = false;
+let nativePath = "";
 
 try {
   const require = createRequire(import.meta.url);
@@ -34,6 +35,7 @@ try {
     try {
       nativeModule = require(candidate);
       usingRustEngine = true;
+      nativePath = candidate;
       console.log(`[scanner] Rust native engine loaded from ${candidate}`);
       break;
     } catch {
