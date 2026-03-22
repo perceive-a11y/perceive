@@ -143,10 +143,14 @@ enum NameStatus {
 /// Determine whether an element has an accessible name.
 fn accessible_name_status(elem: &HtmlElement) -> NameStatus {
     // 1. aria-label (non-empty, non-whitespace-only)
-    if let Some(label) = elem.attr("aria-label")
-        && !label.trim().is_empty()
-    {
-        return NameStatus::Present;
+    if let Some(label) = elem.attr("aria-label") {
+        if !label.trim().is_empty() {
+            return NameStatus::Present;
+        }
+        // Whitespace-only = a Liquid expression was stripped → dynamic value
+        if !label.is_empty() {
+            return NameStatus::LiquidDynamic;
+        }
     }
 
     // 2. aria-labelledby (references another element — presence = intent)
@@ -155,10 +159,14 @@ fn accessible_name_status(elem: &HtmlElement) -> NameStatus {
     }
 
     // 3. title attribute (fallback accessible name)
-    if let Some(title) = elem.attr("title")
-        && !title.trim().is_empty()
-    {
-        return NameStatus::Present;
+    if let Some(title) = elem.attr("title") {
+        if !title.trim().is_empty() {
+            return NameStatus::Present;
+        }
+        // Whitespace-only = a Liquid expression was stripped → dynamic value
+        if !title.is_empty() {
+            return NameStatus::LiquidDynamic;
+        }
     }
 
     // 4. Inner text content
@@ -280,5 +288,27 @@ mod tests {
         let elements = vec![el("button", &[("aria-labelledby", "label-id")], "")];
         let findings = check(&elements, "test.liquid", &|_| 1);
         assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn flags_liquid_stripped_aria_label_as_moderate() {
+        // After Liquid stripping, aria-label="{{ 'key' | t }}" becomes
+        // whitespace — downgrade to moderate since Liquid provides the
+        // value at runtime.
+        let elements = vec![el("button", &[("aria-label", "                  ")], "")];
+        let findings = check(&elements, "test.liquid", &|_| 1);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::Moderate);
+        assert!(findings[0].message.contains("dynamic value"));
+    }
+
+    #[test]
+    fn flags_liquid_stripped_title_as_moderate() {
+        // Same pattern for title attribute containing Liquid expressions
+        let elements = vec![el("a", &[("href", "/"), ("title", "          ")], "")];
+        let findings = check(&elements, "test.liquid", &|_| 1);
+        assert_eq!(findings.len(), 1);
+        assert_eq!(findings[0].severity, Severity::Moderate);
+        assert!(findings[0].message.contains("dynamic value"));
     }
 }
