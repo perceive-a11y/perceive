@@ -22,7 +22,7 @@ import prisma from "~/lib/db.server";
 import { getThemes, fetchThemeFiles } from "~/lib/theme-fetcher.server";
 import { scanTheme } from "~/lib/scanner.server";
 import { encrypt } from "~/lib/crypto.server";
-import { isDeepScanRunning, forkDeepScanWorker } from "~/lib/deep-scan.server";
+import { isDeepScanRunning, dispatchDeepScan } from "~/lib/deep-scan.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await shopify.authenticate.admin(request);
@@ -163,8 +163,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    // Fork the deep scan worker
-    const pid = await forkDeepScanWorker(
+    // Dispatch deep scan to worker service (or local fork in dev)
+    await dispatchDeepScan(
       scan.id,
       shopDomain,
       encryptedPassword,

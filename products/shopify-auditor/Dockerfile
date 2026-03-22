@@ -43,15 +43,13 @@ RUN npx prisma generate \
 # Stage 3: Production image
 FROM node:20-bookworm-slim
 
-# Playwright's Chromium needs system libs — use its own installer to get
-# the complete set rather than maintaining a manual list.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates fonts-liberation \
+    && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy node_modules (includes prisma client + playwright)
+# Copy node_modules (includes prisma client, no Playwright in production)
 COPY --from=app-builder /app/node_modules ./node_modules
 COPY --from=app-builder /app/build ./build
 COPY --from=app-builder /app/package.json ./
@@ -59,14 +57,8 @@ COPY --from=app-builder /app/package.json ./
 # Copy Prisma schema (needed for migrations at startup)
 COPY --from=app-builder /app/prisma ./prisma
 
-# Copy app source (needed for the deep-scan worker which runs .mjs directly)
-COPY --from=app-builder /app/app ./app
-
 # Copy the Rust native module into the expected location
 COPY --from=rust-builder /build/products/shopify-auditor/native/shopify-auditor.node ./native/shopify-auditor.node
-
-# Install Playwright Chromium browser and all its system dependencies
-RUN npx playwright install --with-deps chromium
 
 # SQLite database lives on a persistent Fly volume mounted at /data
 ENV DATABASE_URL="file:/data/prod.db"

@@ -1,21 +1,19 @@
 /**
- * Deep scan orchestration — forks a child process to run Playwright + axe-core
- * against rendered storefront pages.
+ * Deep scan orchestration -- dispatches scans to the worker service in
+ * production, or forks a local child process in development.
  *
- * The static Rust scan runs synchronously first (1-3s), then this module forks
- * the worker for runtime scanning. The dashboard polls for completion.
+ * The static Rust scan runs synchronously first (1-3s), then this module
+ * hands off runtime scanning. The dashboard polls for completion.
  */
-
-import { fork } from "node:child_process";
-import { resolve } from "node:path";
 
 import prisma from "./db.server";
 import { decrypt } from "./crypto.server";
 
-// Worker and DB paths use process.cwd() (web/) for reliability across
-// dev (Vite) and production (compiled) environments.
-const WORKER_PATH = resolve(process.cwd(), "app/lib/deep-scan-worker.mjs");
-const DB_PATH = resolve(process.cwd(), "dev.db");
+/** How long to wait for the worker service to accept the request (ms). */
+const DISPATCH_TIMEOUT_MS = 30_000;
+
+/** Guardian timeout: mark scan failed if no callback arrives (ms). */
+const GUARDIAN_TIMEOUT_MS = 6 * 60 * 1000;
 
 /**
  * Check whether a deep scan is already running for this merchant.
@@ -39,11 +37,8 @@ export async function isDeepScanRunning(merchantId: number): Promise<boolean> {
 }
 
 /**
- * Fork the deep scan worker as a child process.
- *
- * The worker runs Playwright + axe-core against the storefront, writes
- * findings directly to SQLite, computes a composite score, and updates
- * the scan status to "completed" or "failed".
+ * Dispatch a deep scan to the worker service, or fork locally if WORKER_URL
+ * is not set (local development fallback).
  *
  * # Arguments
  *
@@ -51,19 +46,15 @@ export async function isDeepScanRunning(merchantId: number): Promise<boolean> {
  * * `shopDomain` - The merchant's .myshopify.com domain
  * * `encryptedPassword` - AES-256-GCM encrypted store password, or null
  *
- * # Returns
- *
- * The child process PID (for logging).
- *
  * # Errors
  *
  * Throws if the encrypted password cannot be decrypted.
  */
-export async function forkDeepScanWorker(
+export async function dispatchDeepScan(
     scanId: number,
     shopDomain: string,
     encryptedPassword: string | null,
-): Promise<number> {
+): Promise<void> {
     let password = "";
     if (encryptedPassword) {
         try {
@@ -78,24 +69,109 @@ export async function forkDeepScanWorker(
         }
     }
 
-    // Update scan status before forking
+    // Update scan status before dispatching
     await prisma.scan.update({
         where: { id: scanId },
         data: { status: "deep-scan-pending" },
     });
 
-    const child = fork(WORKER_PATH, [
+    const workerUrl = process.env.WORKER_URL;
+    if (workerUrl) {
+        await dispatchToWorkerService(scanId, shopDomain, password, workerUrl);
+    } else {
+        await forkLocalWorker(scanId, shopDomain, password);
+    }
+}
+
+/**
+ * Send the scan job to the remote worker service via HTTP.
+ *
+ * The worker returns 202 immediately and runs the scan in the background,
+ * POSTing results back to /internal/scan-results when done.
+ */
+async function dispatchToWorkerService(
+    scanId: number,
+    shopDomain: string,
+    password: string,
+    workerUrl: string,
+): Promise<void> {
+    // Build the callback URL from the main app's internal hostname.
+    // In production on Fly, this uses .internal DNS over WireGuard.
+    const callbackBase = process.env.CALLBACK_URL
+        || "http://perceive-a11y-auditor.internal:3000";
+    const callbackUrl = `${callbackBase}/internal/scan-results`;
+
+    try {
+        const resp = await fetch(`${workerUrl}/scan`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.WORKER_SECRET}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ scanId, shopDomain, password, callbackUrl }),
+            signal: AbortSignal.timeout(DISPATCH_TIMEOUT_MS),
+        });
+
+        if (!resp.ok) {
+            const text = await resp.text().catch(() => "");
+            throw new Error(`Worker responded ${resp.status}: ${text}`);
+        }
+    } catch (err) {
+        console.error(`[deep-scan] Failed to dispatch scan ${scanId}:`, err);
+        await prisma.scan.updateMany({
+            where: { id: scanId, status: { not: "completed" } },
+            data: { status: "failed" },
+        });
+        return;
+    }
+
+    // Guardian timeout: if the worker never calls back, mark the scan failed.
+    // Uses setTimeout which survives beyond the request lifecycle in Node.
+    // The unref() call ensures this timer does not prevent process exit.
+    const timer = setTimeout(async () => {
+        try {
+            await prisma.scan.updateMany({
+                where: {
+                    id: scanId,
+                    status: { in: ["deep-scan-pending", "deep-scan-running"] },
+                },
+                data: { status: "failed" },
+            });
+            console.error(`[deep-scan] Guardian timeout: scan ${scanId} marked failed`);
+        } catch (e) {
+            console.error("[deep-scan] Guardian timeout DB update failed:", e);
+        }
+    }, GUARDIAN_TIMEOUT_MS);
+    timer.unref();
+}
+
+/**
+ * Local development fallback: fork the deep-scan-worker.mjs child process
+ * so developers do not need to run a separate worker service.
+ */
+async function forkLocalWorker(
+    scanId: number,
+    shopDomain: string,
+    password: string,
+): Promise<void> {
+    // Dynamic imports so production builds do not bundle child_process or
+    // resolve the worker path when using the remote worker service.
+    const { fork } = await import("node:child_process");
+    const { resolve } = await import("node:path");
+
+    const workerPath = resolve(process.cwd(), "app/lib/deep-scan-worker.mjs");
+    const dbPath = resolve(process.cwd(), "dev.db");
+
+    const child = fork(workerPath, [
         scanId.toString(),
         shopDomain,
         password,
-        DB_PATH,
+        dbPath,
     ], {
-        // Detach so the worker survives if this request handler ends
         detached: false,
         stdio: ["ignore", "pipe", "pipe", "ipc"],
     });
 
-    // Log worker output
     child.stdout?.on("data", (data: Buffer) => {
         process.stdout.write(data);
     });
@@ -103,14 +179,10 @@ export async function forkDeepScanWorker(
         process.stderr.write(data);
     });
 
-    // Handle unexpected worker death
     child.on("exit", async (code) => {
         if (code !== 0) {
             console.error(`[deep-scan] Worker exited with code ${code} for scan ${scanId}`);
             try {
-                // Mark scan as failed if worker crashed
-                // Use better-sqlite3 directly to avoid Prisma connection issues
-                // in the event handler context
                 await prisma.scan.updateMany({
                     where: { id: scanId, status: { not: "completed" } },
                     data: { status: "failed" },
@@ -120,8 +192,6 @@ export async function forkDeepScanWorker(
             }
         }
     });
-
-    return child.pid ?? 0;
 }
 
 /**
@@ -173,7 +243,7 @@ export function computeScore(
 /**
  * Normalize an element HTML string into a deduplication key.
  *
- * Extracts tag:id:src:href from the HTML — loose enough to catch real overlaps
+ * Extracts tag:id:src:href from the HTML -- loose enough to catch real overlaps
  * (same img missing alt, same link with bad text) without over-matching.
  */
 export function normalizeDedupeKey(criterionId: string, elementHtml: string): string {
