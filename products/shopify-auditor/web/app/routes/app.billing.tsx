@@ -36,7 +36,7 @@ const PLANS = [
     price: 19,
     features: [
       "Everything in Free",
-      "Detailed findings with file and line numbers",
+      "Detailed findings with source code file and line references",
       "Fix suggestions for every issue",
       "Shareable HTML report",
       "Accessibility Statement generator",

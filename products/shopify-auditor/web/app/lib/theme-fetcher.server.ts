@@ -59,7 +59,7 @@ export interface Theme {
  * Get all themes for the shop (up to 10).
  */
 export async function getThemes(
-  admin: AdminApiContext["admin"]
+  admin: AdminApiContext
 ): Promise<Theme[]> {
   const response = await admin.graphql(THEMES_QUERY);
   const data = await response.json();
@@ -70,7 +70,7 @@ export async function getThemes(
  * Get the active (published) theme for a shop.
  */
 export async function getActiveTheme(
-  admin: AdminApiContext["admin"]
+  admin: AdminApiContext
 ): Promise<Theme | null> {
   const themes = await getThemes(admin);
   return themes.find((t: Theme) => t.role === "MAIN") ?? null;
@@ -83,7 +83,7 @@ export async function getActiveTheme(
  * Skips JSON config files, images, and other binary assets.
  */
 export async function fetchThemeFiles(
-  admin: AdminApiContext["admin"],
+  admin: AdminApiContext,
   themeId: string
 ): Promise<ThemeFile[]> {
   // First, get the list of all filenames

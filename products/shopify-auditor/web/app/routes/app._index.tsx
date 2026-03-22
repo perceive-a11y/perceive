@@ -546,7 +546,7 @@ export default function DashboardPage() {
             <Banner title="Deep scan in progress" tone="info">
               <InlineStack gap="200" blockAlign="center">
                 <Spinner size="small" />
-                <p>Analyzing rendered pages with a real browser... This may take a minute.</p>
+                <p>Analyzing rendered pages with a real browser... This may take several minutes depending on the number of pages.</p>
               </InlineStack>
             </Banner>
           </Layout.Section>

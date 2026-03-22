@@ -249,8 +249,8 @@ export default function ScanPage() {
                   onChange={setStorePassword}
                   helpText={
                     hasStoredPassword
-                      ? "Leave blank to use your saved password."
-                      : "Only needed if your store is password-protected."
+                      ? "Leave blank to use your saved password. Your password is AES-256 encrypted and never visible in plain text."
+                      : "Deep scans visit your storefront with a real browser. If your store is password-protected, provide the password here. It is AES-256 encrypted and never stored in plain text."
                   }
                   autoComplete="off"
                 />

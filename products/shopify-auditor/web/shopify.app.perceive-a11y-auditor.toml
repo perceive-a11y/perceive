@@ -2,7 +2,7 @@
 
 client_id = "9c1b2ee5d39a30b6db9a77f8928ffe5c"
 name = "Perceive A11y Auditor"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://perceive-a11y-auditor.fly.dev"
 embedded = true
 
 [build]
@@ -21,4 +21,4 @@ api_version = "2026-04"
 scopes = "read_themes"
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://perceive-a11y-auditor.fly.dev/auth/callback", "https://perceive-a11y-auditor.fly.dev/api/auth" ]
