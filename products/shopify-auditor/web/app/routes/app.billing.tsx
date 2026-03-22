@@ -122,9 +122,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // the App Bridge 401-header mechanism from working.
   const response = await admin.graphql(
     `#graphql
-    mutation createSubscription($name: String!, $amount: Decimal!, $returnUrl: URL!) {
+    mutation createSubscription($name: String!, $amount: Decimal!, $returnUrl: URL!, $test: Boolean) {
       appSubscriptionCreate(
         name: $name
+        test: $test
         lineItems: [{
           plan: {
             appRecurringPricingDetails: {
@@ -148,6 +149,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       variables: {
         name: `Perceive A11y ${plan.label}`,
         amount: plan.price.toString(),
+        // Dev/partner stores cannot accept real charges. Set
+        // SHOPIFY_BILLING_TEST=1 in the environment to create test charges.
+        test: process.env.SHOPIFY_BILLING_TEST === "1" || undefined,
         // Return URL must go through the Shopify admin so the app loads
         // embedded with a valid session token. A direct tunnel URL would
         // hit the app outside the iframe, causing an auth failure.
