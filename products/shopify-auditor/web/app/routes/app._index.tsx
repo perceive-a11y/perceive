@@ -49,6 +49,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       reportToken: null,
       billingStatus,
       isDeepScanning: false,
+      staleScanFailed: false,
       score: null,
       plan: "free",
       historyScans: [],
@@ -82,6 +83,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       reportToken: null,
       billingStatus,
       isDeepScanning: false,
+      staleScanFailed: false,
       score: null,
       plan: merchant.plan,
       historyScans: [],
@@ -92,6 +94,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Auto-fail scans stuck in a deep-scan state past the guardian timeout.
   // The in-memory setTimeout guardian doesn't survive process restarts.
   const STALE_SCAN_MS = 6 * 60 * 1000;
+  let staleScanFailed = false;
   if (
     (latestScan.status === "deep-scan-pending" ||
       latestScan.status === "deep-scan-running") &&
@@ -102,6 +105,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       data: { status: "failed" },
     });
     latestScan.status = "failed";
+    staleScanFailed = true;
   }
 
   const isDeepScanning =
@@ -279,6 +283,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     billingStatus,
     isDeepScanning,
     score: latestScan.score,
+    staleScanFailed,
     plan: merchant.plan,
     historyScans,
     trend,
@@ -546,7 +551,7 @@ export default function DashboardPage() {
           </Layout.Section>
         )}
 
-        {data.scan?.status === "failed" && (
+        {data.scan?.status === "failed" && !data.staleScanFailed && (
           <Layout.Section>
             <Banner title="Scan failed" tone="critical">
               <p>
