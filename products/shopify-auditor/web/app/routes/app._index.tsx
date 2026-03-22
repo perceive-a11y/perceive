@@ -342,6 +342,7 @@ export default function DashboardPage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCountRef = useRef(0);
   const [pollStatus, setPollStatus] = useState<string | null>(null);
+  const [dismissedFailBanner, setDismissedFailBanner] = useState(false);
 
   // Max polls before giving up (~2 min at 5s interval).
   // The backend auto-fails stale scans at query time, so this is just a safety net.
@@ -551,12 +552,16 @@ export default function DashboardPage() {
           </Layout.Section>
         )}
 
-        {data.scan?.status === "failed" && !data.staleScanFailed && (
+        {data.scan?.status === "failed" && !data.staleScanFailed && !dismissedFailBanner && (
           <Layout.Section>
-            <Banner title="Scan failed" tone="critical">
+            <Banner
+              title="Deep scan incomplete"
+              tone="warning"
+              onDismiss={() => setDismissedFailBanner(true)}
+            >
               <p>
-                The runtime scan encountered an error. Static findings are
-                still available below. Try running a new deep scan.
+                The runtime scan could not be completed. Static findings are
+                still available below. Try running a new scan.
               </p>
             </Banner>
           </Layout.Section>
