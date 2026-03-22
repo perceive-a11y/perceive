@@ -98,9 +98,17 @@ export async function dispatchDeepScan(
  */
 async function ensureWorkerRunning(workerApp: string): Promise<void> {
     const apiBase = "http://_api.internal:4280";
+    const flyToken = process.env.FLY_API_TOKEN;
+    if (!flyToken) {
+        throw new Error("FLY_API_TOKEN is required to wake worker machines");
+    }
+    const headers: Record<string, string> = {
+        "Authorization": `Bearer ${flyToken}`,
+    };
 
     // List all machines for the worker app
     const listResp = await fetch(`${apiBase}/v1/apps/${workerApp}/machines`, {
+        headers,
         signal: AbortSignal.timeout(5_000),
     });
     if (!listResp.ok) {
@@ -122,7 +130,7 @@ async function ensureWorkerRunning(workerApp: string): Promise<void> {
     console.log(`[deep-scan] Waking worker machine ${dormant.id} (was ${dormant.state})`);
     const startResp = await fetch(
         `${apiBase}/v1/apps/${workerApp}/machines/${dormant.id}/start`,
-        { method: "POST", signal: AbortSignal.timeout(10_000) },
+        { method: "POST", headers, signal: AbortSignal.timeout(10_000) },
     );
     if (!startResp.ok) {
         throw new Error(
