@@ -17,7 +17,7 @@ Part of the [Perceive](https://github.com/perceive-a11y/perceive) accessibility 
 - **All CVD types** — protanopia, deuteranopia, tritanopia, achromatopsia
 - **Severity control** — simulate partial color vision deficiency (0.0–1.0)
 - **`#![no_std]`** compatible
-- **WASM ready** — powers CVD preview in `@perceive/color`
+- **WASM ready** — powers CVD preview in [`@perceive-a11y/perceive-wasm`](https://www.npmjs.com/package/@perceive-a11y/perceive-wasm)
 
 ## Quick Start
 

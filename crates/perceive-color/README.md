@@ -17,7 +17,7 @@ Part of the [Perceive](https://github.com/perceive-a11y/perceive) accessibility 
 - **Palette generation** — accessible tonal scales from a brand color with contrast matrix analysis
 - **Color parsing** — hex, `rgb()`, `hsl()`, CSS named colors
 - **`#![no_std]`** compatible core (enable `std` feature for string parsing)
-- **WASM ready** — powers `@perceive/color` on npm via wasm-bindgen
+- **WASM ready** — powers [`@perceive-a11y/perceive-wasm`](https://www.npmjs.com/package/@perceive-a11y/perceive-wasm) on npm via wasm-bindgen
 
 ## Quick Start
 
