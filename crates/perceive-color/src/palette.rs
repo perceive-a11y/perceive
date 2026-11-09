@@ -129,7 +129,7 @@ mod tests {
     #[test]
     fn palette_empty() {
         let palette = generate_palette(Color::BLACK, 0);
-        assert!(palette.is_empty());
+        assert_eq!(palette, Vec::<Color>::new());
     }
 
     #[test]
