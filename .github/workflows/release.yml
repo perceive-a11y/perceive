@@ -1,0 +1,59 @@
+name: Release
+
+# Pushing a tag like v0.1.1 publishes both crates to crates.io, then the WASM
+# package to npm. Both registries trust this workflow by name (trusted
+# publishing), so there are no API tokens in the repo's secrets.
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  crates-io:
+    name: Publish crates
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check the tag matches the workspace version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.name == "perceive-color") | .version')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match workspace version $version"
+            exit 1
+          fi
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      # Publishes perceive-color, then perceive-cvd. perceive-wasm has publish = false.
+      - run: cargo publish --workspace
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  npm:
+    name: Publish npm package
+    needs: crates-io
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - run: wasm-pack build bindings/wasm --target web --out-dir pkg-web --scope perceive-a11y
+      # Node 24 ships npm 11.5.1 or newer, which trusted publishing needs.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm publish
+        working-directory: bindings/wasm/pkg-web

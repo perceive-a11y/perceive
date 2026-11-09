@@ -26,6 +26,19 @@ just wasm-test   # build the Node package and run tests/wasm_node_test.mjs
 just demo        # build the web package and serve the demo on localhost:8765
 ```
 
+## Releasing
+
+Bump `version` under `[workspace.package]` in `Cargo.toml` and commit it. Then tag and push:
+
+```sh
+git tag -a v0.1.1 -m "perceive 0.1.1"
+git push origin v0.1.1
+```
+
+The tag starts the release workflow. It checks that the tag matches the version, publishes
+perceive-color and perceive-cvd to crates.io, then builds the WASM package and publishes it to
+npm. Both registries trust the workflow itself, so there are no tokens to keep around.
+
 ## License
 
 MIT or Apache-2.0, at your option.

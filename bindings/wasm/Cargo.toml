@@ -6,6 +6,8 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+# Ships to npm through wasm-pack, never to crates.io.
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
