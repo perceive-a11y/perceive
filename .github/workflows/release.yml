@@ -1,8 +1,9 @@
 name: Release
 
-# Pushing a tag like v0.1.1 publishes both crates to crates.io, then the WASM
-# package to npm. Both registries trust this workflow by name (trusted
-# publishing), so there are no API tokens in the repo's secrets.
+# Pushing a tag like v0.1.1 publishes both crates to crates.io, then stages the
+# WASM package on npm. The npm version goes live once a maintainer approves it
+# under Staged Packages on npmjs.com. Both registries trust this workflow by name
+# (trusted publishing), so there are no API tokens in the repo's secrets.
 
 on:
   push:
@@ -50,10 +51,11 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - run: wasm-pack build bindings/wasm --target web --out-dir pkg-web --scope perceive-a11y
-      # Node 24 ships npm 11.5.1 or newer, which trusted publishing needs.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-      - run: npm publish
+      # Staged publishing needs npm 11.15.0 or newer.
+      - run: npm install -g npm@^11.15.0
+      - run: npm stage publish
         working-directory: bindings/wasm/pkg-web

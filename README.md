@@ -36,8 +36,9 @@ git push origin v0.1.1
 ```
 
 The tag starts the release workflow. It checks that the tag matches the version, publishes
-perceive-color and perceive-cvd to crates.io, then builds the WASM package and publishes it to
-npm. Both registries trust the workflow itself, so there are no tokens to keep around.
+perceive-color and perceive-cvd to crates.io, then builds the WASM package and stages it on npm.
+The npm version goes live when you approve it under Staged Packages on npmjs.com, which asks for
+2FA. Both registries trust the workflow itself, so there are no tokens to keep around.
 
 ## License
 
